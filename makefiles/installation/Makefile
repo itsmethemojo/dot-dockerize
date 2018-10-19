@@ -8,7 +8,7 @@ $(error target $(MAKECMDGOALS) is private)
 endif
 
 .PHONY: install-buildpack
-install-buildpack: _download-buildpack _create-script-files
+install-buildpack: _download-buildpack _create-script-files _update-gitignore _update-makefile
 
 .PHONY: _download-buildpack
 _download-buildpack:
