@@ -1,40 +1,63 @@
 BUILDPACK_REPOSITORY = https://github.com/itsmethemojo/buildpack.git
 BUILDPACK_FOLDER = buildpack
 MAKEFILES_FOLDER = $(BUILDPACK_FOLDER)/makefiles
-SCRIPTS_TEMPLATES_FOLDER = $(BUILDPACK_FOLDER)/scripts-templates
+BASH_SCRIPT_TEMPLATE = $(BUILDPACK_FOLDER)/bash/templates/run-task.sh
+TASK_TARGET_TEMPLATE = $(BUILDPACK_FOLDER)/makefiles/templates/target-to-run-task.Makefile
 SCRIPTS_FOLDER = scripts
+BRANCH ?= master
 
 ifeq ($(findstring _,$(MAKECMDGOALS)),_)
 $(error target $(MAKECMDGOALS) is private)
 endif
 
-.PHONY: checkstyle
-checkstyle:
-	make -f $(MAKEFILES_FOLDER)/checkstyle.Makefile
-
-.PHONY: unittest
-unittest:
-	make -f $(MAKEFILES_FOLDER)/unittest.Makefile
-
 .PHONY: install-buildpack
-install-buildpack: _download-buildpack _create-script-files _update-gitignore _update-makefile
+install-buildpack: _download-buildpack _create-config-files _update-gitignore _update-makefile
 
 .PHONY: _download-buildpack
 _download-buildpack:
-	rm -rf $(BUILDPACK_FOLDER)
-	docker run -v $$(pwd)/$(BUILDPACK_FOLDER):/downloads buildpack-deps bash -c "git clone --depth 1 $(BUILDPACK_REPOSITORY) /downloads && rm -r /downloads/.git && chmod -R 777 /downloads"
+	$(info download current version of buildpack)
+	@rm -rf $(BUILDPACK_FOLDER)
+	@docker run -v $$(pwd)/$(BUILDPACK_FOLDER):/downloads buildpack-deps bash -c "git clone -b $(BRANCH) --depth 1 $(BUILDPACK_REPOSITORY) /downloads &> /dev/null && git ls-remote /downloads | grep 'refs/tags' | sort -r | grep -o '[^\/]*$$' | head -1 > /downloads/VERSION && rm -r /downloads/.git && chmod -R 777 /downloads"
+ifneq ($(BRANCH),master)
+	@echo $(BRANCH) > $(BUILDPACK_FOLDER)/VERSION
+endif
+
+.PHONY: _print-version
+_print-version:
+	@echo buildpack version: $$(cat $(BUILDPACK_FOLDER)/VERSION)
 
 # if a newer version of the buildpack will add targets and therefore scripts, this will create the additional needed scripts
-.PHONY: _create-script-files
-_create-script-files:
-	mkdir -p scripts
-	for SCRIPT_FILE in $$(ls -1 $(SCRIPTS_TEMPLATES_FOLDER)); do if [ ! -f $(SCRIPTS_FOLDER)/$$SCRIPT_FILE ]; then cp $(SCRIPTS_TEMPLATES_FOLDER)/$$SCRIPT_FILE $(SCRIPTS_FOLDER)/$$SCRIPT_FILE; fi ; done
+.PHONY: add-task
+add-task: _create-task _update-makefile
+
+.PHONY: _create-task
+_create-task:
+	# add error handling if NAME var is missing or bad formatted
+	@mkdir -p $(SCRIPTS_FOLDER)
+	@touch $(SCRIPTS_FOLDER)/$(NAME).sh
+	@chmod +x $(SCRIPTS_FOLDER)/$(NAME).sh
+	@cat $(BASH_SCRIPT_TEMPLATE) >> $(SCRIPTS_FOLDER)/$(NAME).sh
+
+.PHONY: _create-config-files
+_create-config-files:
+	$(info create buildpack-config files if not existing)
+	@mkdir -p buildpack-config/docker
+	@touch buildpack-config/tasks.env
 
 .PHONY: _update-makefile
-_update-makefile:
-	cat buildpack/Makefile > Makefile
+_update-makefile: _copy-makefile _add-dynamic-targets-to-makefile _print-version
+	$(info update MAKEFILE to newest version)
+
+.PHONY: _copy-makefile
+_copy-makefile:
+	@cat buildpack/Makefile > Makefile
+
+.PHONY: _add-dynamic-targets-to-makefile
+_add-dynamic-targets-to-makefile:
+	@for SCRIPT_FILE in $$(ls -1 $(SCRIPTS_FOLDER)  2>/dev/null | sed -e 's/\..*$$//'); do cat $(TASK_TARGET_TEMPLATE) | sed "s/__TASKNAME__/$$SCRIPT_FILE/g" >> Makefile; done
 
 .PHONY: _update-gitignore
 _update-gitignore:
-	if [ ! -f .gitignore ]; then echo "/$(BUILDPACK_FOLDER)" > .gitignore; fi
-	if [ "$$(grep "/$(BUILDPACK_FOLDER)" .gitignore | wc -l)" = "0" ]; then echo "/$(BUILDPACK_FOLDER)" >> .gitignore; fi
+	$(info update .gitignore to ignore files in buildpack folder)
+	@if [ ! -f .gitignore ]; then echo "/$(BUILDPACK_FOLDER)/" > .gitignore; fi
+	@if [ "$$(grep "/$(BUILDPACK_FOLDER)/" .gitignore | wc -l)" = "0" ]; then echo "/$(BUILDPACK_FOLDER)/" >> .gitignore; fi
