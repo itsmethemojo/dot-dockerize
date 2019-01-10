@@ -28,11 +28,11 @@ in **scripts/mytask.sh** is now a bash script template where you can add your co
 
 #### 4.2 Container
 
-you can overload the container base image in buildpack-config/tasks.env
+you can overload the container base image in buildpack/config/tasks.env
 ```
 mytask_container=ruby
 ```
 or point to an own Dockerfile in your project
 ```
-mytask_dockerfile=buildpack-config/docker/mytask/Dockerfile
+mytask_dockerfile=buildpack/config/docker/mytask/Dockerfile
 ```
