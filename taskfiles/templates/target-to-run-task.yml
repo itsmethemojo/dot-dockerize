@@ -1,0 +1,4 @@
+  __TASKNAME__:
+    cmds:
+      - cmd: name="__TASKNAME__" task run
+        silent: true
