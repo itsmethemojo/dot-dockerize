@@ -109,7 +109,7 @@
 }
 
 @test "configure ruby task to use ruby container" {
-  run echo $(echo 'ruby-task_container=ruby' > buildpack/config/task.env && cat buildpack/config/task.env)
+  run echo $(echo 'ruby-task_container=ruby' > buildpack/config/tasks.env && cat buildpack/config/tasks.env)
   [ "$output" == "ruby-task_container=ruby" ]
 }
 

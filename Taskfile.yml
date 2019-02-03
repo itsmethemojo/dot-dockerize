@@ -30,25 +30,25 @@ vars:
   ABSOLUTE_PROJECT_ROOT:
     sh: "pwd"
   TASK_SCRIPT_PATH: "{{.SCRIPTS_FOLDER}}/$name.sh"
-  TASK_CONFIG_FILE: "{{.CONFIG_FOLDER}}/task.env"
+  TASK_CONFIG_FILE: "{{.CONFIG_FOLDER}}/tasks.env"
   TASK_DEFAULT_CONTAINER: "buildpack-deps"
   TASK_DIR_IN_CONTAINER: "/container-$name"
   TASK_CONTAINER_MOUNT_PARAMETERS: "-v $(pwd):{{.TASK_DIR_IN_CONTAINER}}"
   TASK_CONTAINER_NAME:
     sh: >-
-      CONFIG_FILE=buildpack/config/task.env
+      CONFIG_FILE=buildpack/config/tasks.env
       RETURN_CONTAINER_NAME=buildpack-deps;
-      if [ "$(grep -e "${name}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-      RETURN_CONTAINER_NAME="$(grep -e "${name}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
+      if [ "$(grep -e "^${name}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
+      RETURN_CONTAINER_NAME="$(grep -e "^${name}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
       fi;
-      if [ "$(grep -e "${name}_dockerfile=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-      RETURN_CONTAINER_NAME="buildpack-task-$(name)";
+      if [ "$(grep -e "^${name}_dockerfile=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
+      RETURN_CONTAINER_NAME="buildpack-task-${name}";
       fi;
       echo $RETURN_CONTAINER_NAME;
   TASK_DOCKERFILE_PATH:
     sh: >-
-      echo "$(grep -e "${name}_dockerfile=" buildpack/config/task.env 2>/dev/null | grep -o -e '[^=]*$')";
-      
+      echo "$(grep -e "^${name}_dockerfile=" buildpack/config/tasks.env 2>/dev/null | grep -o -e '[^=]*$')";
+
 tasks:
 
   add:
@@ -90,7 +90,7 @@ tasks:
     cmds:
       - cmd: >-
           if [ "{{.TASK_DOCKERFILE_PATH}}" != "" ]; then
-          docker build -t {{.TASK_CONTAINER_NAME}} -f "{{.TASK_DOCKERFILE_PATH}}" $(dir "{{.TASK_DOCKERFILE_PATH}}");
+          docker build -t {{.TASK_CONTAINER_NAME}} -f "{{.TASK_DOCKERFILE_PATH}}" $(dirname "{{.TASK_DOCKERFILE_PATH}}");
           fi;
         silent: true
 
