@@ -186,7 +186,7 @@ tasks:
           if [ -f "/.dockerenv" ]; then
           bash {{.TASK_DIR_IN_CONTAINER}}/{{.TASK_SCRIPT_PATH}};
           else
-          docker run {{.TASK_CONTAINER_MOUNT_PARAMETERS}} {{.TASK_CONTAINER_NAME}} bash {{.TASK_DIR_IN_CONTAINER}}/{{.TASK_SCRIPT_PATH}};
+          docker run {{.TASK_CONTAINER_MOUNT_PARAMETERS}} -w {{.TASK_DIR_IN_CONTAINER}} {{.TASK_CONTAINER_NAME}} bash {{.TASK_SCRIPT_PATH}};
           fi;
         silent: true
 
