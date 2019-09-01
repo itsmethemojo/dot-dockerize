@@ -23,7 +23,7 @@ task install-buildpack
 
 ### 3. setup a custom task
 ```
-name=mytask task add-task
+name=mytask task add
 ```
 
 ### 4. configure your custom task
@@ -43,7 +43,7 @@ or point to an own Dockerfile to be used in your project
 mytask_dockerfile=buildpack/config/docker/mytask/Dockerfile
 ```
 
-### 5. use you new task
+### 5. use your new task
 ```
 task mytask
 ```
