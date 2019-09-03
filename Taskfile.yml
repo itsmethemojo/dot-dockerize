@@ -62,7 +62,7 @@ tasks:
     cmds:
       - task: _print-version
 
-  install-buildpack:
+  init:
     cmds:
       - task: _download-buildpack
       - task: _create-config-files
@@ -72,9 +72,11 @@ tasks:
   run:
     deps: [ _check-install-needed ]
     cmds:
+      - task: _start_watch_run
       - task: _print-version
       - task: _build_task_container
       - task: _run_task
+      - task: _stop_watch_run
 
   # private targets
 
@@ -98,7 +100,7 @@ tasks:
     cmds:
       - cmd: >-
           if [ ! -f "{{.BASH_SCRIPT_TEMPLATE}}" ]; then
-          echo 'Important files missing. Buildpack seems not be installed. Run task install-buildpack to fix that.';
+          echo 'Important files missing. Buildpack seems not be installed. Run task init to fix that.';
           exit 1;
           fi
         silent: true
@@ -188,6 +190,19 @@ tasks:
           else
           docker run {{.TASK_CONTAINER_MOUNT_PARAMETERS}} -w {{.TASK_DIR_IN_CONTAINER}} {{.TASK_CONTAINER_NAME}} bash {{.TASK_SCRIPT_PATH}};
           fi;
+        silent: true
+
+  _start_watch_run:
+    cmds:
+      - cmd: >-
+          echo $(date +%s) > {{.BUILDPACK_TMP_FOLDER}}/start-watch-$name
+        silent: true
+
+  _stop_watch_run:
+    cmds:
+      - cmd: >-
+          echo -e "\nDuration: $(( $(date +%s) - $( cat {{.BUILDPACK_TMP_FOLDER}}/start-watch-$name ) ))s" &&
+          rm {{.BUILDPACK_TMP_FOLDER}}/start-watch-$name
         silent: true
 
   _update-gitignore:

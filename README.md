@@ -18,7 +18,7 @@ curl https://raw.githubusercontent.com/itsmethemojo/buildpack/master/Taskfile.ym
 
 ### 2. install buildpack
 ```
-task install-buildpack
+task init
 ```
 
 ### 3. setup a custom task
