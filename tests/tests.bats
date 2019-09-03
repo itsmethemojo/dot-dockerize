@@ -12,11 +12,11 @@
 @test "task add without previous install fails and throws missing install error" {
   run task add
   [ "$status" -eq 1 ]
-  [ "${lines[0]}" = "Important files missing. Buildpack seems not be installed. Run task install-buildpack to fix that." ]
+  [ "${lines[0]}" = "Important files missing. Buildpack seems not be installed. Run task init to fix that." ]
 }
 
-@test "task install-buildpack succeeds" {
-  run task install-buildpack
+@test "task init succeeds" {
+  run task init
   [ "$status" -eq 0 ]
 }
 
@@ -69,8 +69,8 @@
   [ "$output" = "first-task.sh" ]
 }
 
-@test "reinstall with task install-buildpack succeeds" {
-  run task install-buildpack
+@test "reinstall with task init succeeds" {
+  run task init
   [ "$status" -eq 0 ]
 }
 
@@ -86,10 +86,11 @@
   [ "$output" = "/buildpack/tmp/" ]
 }
 
-@test "running task first-task succeeds" {
+@test "running task first-task succeeds and duration is printed" {
   run task first-task
   [ "$status" -eq 0 ]
   [ "${lines[2]}" = "ok" ]
+  [ "$(echo ${lines[3]} | cut -d ':' -f 1)" = "Duration" ]
 }
 
 @test "name=ruby-task task add succeeds" {
