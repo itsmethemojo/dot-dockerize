@@ -1,121 +1,86 @@
 #!/usr/bin/env bats
 
-
 # TODO left things to test
-# version output (on master showing most current tag)
-# branch output
+# add test that clones a specific tag and checks if specific Version is printed
 # building and using a custom container
-# check install abort on every target but install
+# check install abort on every target but init
 # test Taskfile update after install (maybe with modifying it before install)
 # with reinstall all files will be deleted in tmp
+# since lines is not a good solution in most cases, switch to output and grep searched strings
+
+function setup {
+  find -mindepth 1 -delete
+  # copy Taskfile as starting point
+  cp ../../Taskfile.yml .
+  # if exists copy config data for the current test case
+  cp -r ../data/$BATS_TEST_NUMBER/* . 2>/dev/null || :
+}
+
+function teardown {
+  find -mindepth 1 -delete
+}
 
 @test "task add without previous install fails and throws missing install error" {
   run task add
   [ "$status" -eq 1 ]
-  [ "${lines[0]}" = "Important files missing. Buildpack seems not be installed. Run task init to fix that." ]
+  [ "$(echo $output | grep 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.' | wc -l)" = "1" ]
 }
 
-@test "task init succeeds" {
+@test "task init succeeds. version is printed, folder structure is created, VERSION file is created" {
   run task init
   [ "$status" -eq 0 ]
-}
-
-@test "buildpack folder content is created" {
-  run ls -1 buildpack/
-  [ "$status" -eq 0 ]
-  [ "${lines[0]}" = "config" ]
-  [ "${lines[1]}" = "tmp" ]
-}
-
-@test "buildpack/config folder content is created" {
-  run ls -1 buildpack/config/
-  [ "$status" -eq 0 ]
-  [ "${lines[0]}" = "docker" ]
-  [ "${lines[1]}" = "tasks.env" ]
-}
-
-@test "BRANCH file is created" {
-  run ls -1 buildpack/tmp/BRANCH
-  [ "$status" -eq 0 ]
-  [ "$output" = "buildpack/tmp/BRANCH" ]
-}
-
-@test ".gitignore file is created" {
-  run cat .gitignore
-  [ "$status" -eq 0 ]
-  [ "$output" = "/buildpack/tmp/" ]
+  [ "$(echo $output | grep 'Version:' | wc -l)" = "1" ]
+  [ "$(ls -1 buildpack/ | tr '\n' _)" = "config_tmp_" ]
+  [ "$(ls -1 buildpack/config/ | tr '\n' _)" = "docker_tasks.env_" ]
+  [ "$(ls -1 buildpack/tmp/VERSION | tr '\n' _)" = "buildpack/tmp/VERSION_" ]
+  [ "$(cat .gitignore)" = "/buildpack/tmp/" ]
 }
 
 @test "task add without name parameter fails" {
-  run task add
+  run task init add
   [ "$status" -eq 1 ]
-  [ "${lines[0]}" = 'missing Parameter name! Usage: name="my-task" task add' ]
+  [ "$(echo $output | grep 'missing Parameter name! Usage: name="my-task" task add' | wc -l)" = "1" ]
 }
 
-@test "task task-name-that-does-not-exist fails" {
+@test "task init task-name-that-does-not-exist fails" {
   run task task-name-that-does-not-exist
   [ "$status" -eq 1 ]
 }
 
-@test "name=first-task task add succeeds" {
-  run echo "$(name=first-task task add && echo $?)"
-  [ "${lines[2]}" == "0" ]
+@test "name=first-task task add succeeds. first-task.sh was created" {
+  run echo "$(task init && name=first-task task add && echo FINAL_EXIT_CODE=$?)"
+  [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   # since bats can't handle parameters before the runner, this adds the response code to the output to be checked
+  [ "$(ls -1 buildpack/scripts | tr '\n' _)" = "first-task.sh_" ]
 }
 
-@test "first-task.sh was created" {
-  run ls buildpack/scripts/
+@test "reinstall with task init succeeds, VERSION file exists, .gitignore content as expected after reinstall" {
+  run task init init
   [ "$status" -eq 0 ]
-  [ "$output" = "first-task.sh" ]
+  [ "$(ls -1 buildpack/tmp/VERSION | tr '\n' _)" = "buildpack/tmp/VERSION_" ]
+  [ "$(cat .gitignore)" = "/buildpack/tmp/" ]
 }
 
-@test "reinstall with task init succeeds" {
-  run task init
-  [ "$status" -eq 0 ]
+# this test may fail when the image is not pulled yet and so the tested statements are not in the defined output lines
+# is reproducable by dropping the buildpack-deps container
+# rerun will succeed
+# maybe switch to output and grep
+@test "running task first-task succeeds. version and duration is printed" {
+  run echo "$(task init && name=first-task task add && task first-task && echo FINAL_EXIT_CODE=$?)"
+  [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'Version:' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'Duration:' | wc -l)" = "1" ]
+  [ "$(echo $output | grep ok | wc -l)" = "1" ]
 }
 
-@test "BRANCH file is created after reinstall" {
-  run ls -1 buildpack/tmp/BRANCH
-  [ "$status" -eq 0 ]
-  [ "$output" = "buildpack/tmp/BRANCH" ]
+@test "running task ruby fails because default container has no ruby installed" {
+  run  echo "$(task init && task ruby || echo FINAL_EXIT_CODE=$?)"
+  [ "$(echo $output | grep 'FINAL_EXIT_CODE=1' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'i am running ruby' | wc -l)" = "0" ]
 }
 
-@test ".gitignore content as exprected after reinstall" {
-  run cat .gitignore
-  [ "$status" -eq 0 ]
-  [ "$output" = "/buildpack/tmp/" ]
-}
-
-@test "running task first-task succeeds and duration is printed" {
-  run task first-task
-  [ "$status" -eq 0 ]
-  [ "${lines[2]}" = "ok" ]
-  [ "$(echo ${lines[3]} | cut -d ':' -f 1)" = "Duration" ]
-}
-
-@test "name=ruby-task task add succeeds" {
-  run echo "$(name=ruby-task task add && echo $?)"
-  [ "${lines[2]}" == "0" ]
-  # since bats can't handle parameters before the runner, this adds the response code to the output to be checked
-}
-
-@test "customize script for ruby task" {
-  run echo $(echo -e "#!/bin/bash\n\nruby -e \"print 'i am running ruby'\"" > buildpack/scripts/ruby-task.sh && cat buildpack/scripts/ruby-task.sh | grep running)
-  [ "${output}" == "ruby -e \"print 'i am running ruby'\"" ]
-}
-
-@test "running task ruby-task fails because default container has no ruby installed" {
-  run task ruby-task
-  [ "$status" -eq 1 ]
-}
-
-@test "configure ruby task to use ruby container" {
-  run echo $(echo 'ruby-task_container=ruby' > buildpack/config/tasks.env && cat buildpack/config/tasks.env)
-  [ "$output" == "ruby-task_container=ruby" ]
-}
-
-@test "running task ruby-task succeded because now the configured ruby container is used" {
-  run task ruby-task
-  [ "$status" -eq 0 ]
-  [ "${lines[2]}" = "i am running ruby" ]
+@test "running task ruby succeded because now the configured ruby container is used" {
+  run echo "$(task init && task ruby && echo FINAL_EXIT_CODE=$?)"
+  [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'i am running ruby' | wc -l)" = "1" ]
 }

@@ -10,25 +10,27 @@ vars:
   BASH_SCRIPT_TEMPLATE: "{{.BUILDPACK_TMP_FOLDER}}/bash/templates/run-task.sh"
   TASK_TARGET_TEMPLATE: "{{.BUILDPACK_TMP_FOLDER}}/taskfiles/templates/target-to-run-task.yml"
   SCRIPTS_FOLDER: "{{.BUILDPACK_FOLDER}}/scripts"
-  BUILDPACK_BRANCH:
+  BUILDPACK_VERSION:
     sh: >-
-      BUILDPACK_BRANCH=master;
-      if [ "$BRANCH" != "" ]; then
-      BUILDPACK_BRANCH=$BRANCH;
+      BUILDPACK_VERSION=$BRANCH;
+      if [ "$BUILDPACK_VERSION" == "" ]; then
+      BUILDPACK_VERSION=$(cat buildpack/tmp/VERSION 2> /dev/null);
       fi;
-      if [ "$DOWNLOAD_MODE" == "local_copy" ]; then
-      BUILDPACK_BRANCH="- (local copy)";
+      if [ "$BUILDPACK_VERSION" == "" ]; then
+      BUILDPACK_VERSION=$(git ls-remote -t git@github.com:itsmethemojo/buildpack.git | awk '{print $2}' | cut -d '/' -f 3 | cut -d '^' -f 1 | tail -1);
       fi;
-      echo $BUILDPACK_BRANCH;
+      echo $BUILDPACK_VERSION;
   DOWNLOAD_TASK:
     sh: >-
-      if [ "$DOWNLOAD_MODE" == "local_copy" ]; then
+      if [ "$BRANCH" == "_local_copy" ]; then
       echo _copy_from_local;
       else
       echo _download_from_git;
       fi
   ABSOLUTE_PROJECT_ROOT:
     sh: "pwd"
+  PROJECT_FOLDER_NAME:
+    sh: "echo ${PWD##*/}"
   TASK_SCRIPT_PATH: "{{.SCRIPTS_FOLDER}}/$name.sh"
   TASK_CONFIG_FILE: "{{.CONFIG_FOLDER}}/tasks.env"
   TASK_DEFAULT_CONTAINER: "buildpack-deps"
@@ -42,7 +44,7 @@ vars:
       RETURN_CONTAINER_NAME="$(grep -e "^${name}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
       fi;
       if [ "$(grep -e "^${name}_dockerfile=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-      RETURN_CONTAINER_NAME="buildpack-task-${name}";
+      RETURN_CONTAINER_NAME="buildpack-{{.PROJECT_FOLDER_NAME}}-task-${name}";
       fi;
       echo $RETURN_CONTAINER_NAME;
   TASK_DOCKERFILE_PATH:
@@ -52,13 +54,13 @@ vars:
 tasks:
 
   add:
-    deps: [ _check-install-needed ]
+    deps: [ _check-init-needed ]
     cmds:
       - task: _create-task-script
       - task: _update-taskfile
 
-  buildpack-version:
-    deps: [ _check-install-needed ]
+  version:
+    deps: [ _check-init-needed ]
     cmds:
       - task: _print-version
 
@@ -70,7 +72,7 @@ tasks:
       - task: _update-taskfile
 
   run:
-    deps: [ _check-install-needed ]
+    deps: [ _check-init-needed ]
     cmds:
       - task: _start_watch_run
       - task: _print-version
@@ -96,11 +98,11 @@ tasks:
           fi;
         silent: true
 
-  _check-install-needed:
+  _check-init-needed:
     cmds:
       - cmd: >-
           if [ ! -f "{{.BASH_SCRIPT_TEMPLATE}}" ]; then
-          echo 'Important files missing. Buildpack seems not be installed. Run task init to fix that.';
+          echo 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.';
           exit 1;
           fi
         silent: true
@@ -111,12 +113,13 @@ tasks:
           cp -R {{.BUILDPACK_FOLDER}}/../../../taskfiles {{.BUILDPACK_TMP_FOLDER}};
           cp -R {{.BUILDPACK_FOLDER}}/../../../bash {{.BUILDPACK_TMP_FOLDER}};
           cp {{.BUILDPACK_FOLDER}}/../../../Taskfile.yml {{.BUILDPACK_TMP_FOLDER}}/Taskfile.yml;
-          echo '- (local copy)' > {{.BUILDPACK_TMP_FOLDER}}/BRANCH
         silent: true
 
   _copy-taskfile-from-download:
     cmds:
-      - cmd: "cat {{.BUILDPACK_TMP_FOLDER}}/Taskfile.yml > Taskfile.yml"
+      - cmd: >
+          echo -e "#BUILDPACK VERSION: {{.BUILDPACK_VERSION}}\n" > Taskfile.yml &&
+          cat {{.BUILDPACK_TMP_FOLDER}}/Taskfile.yml >> Taskfile.yml
         silent: true
 
   _create-config-files:
@@ -140,7 +143,8 @@ tasks:
     deps: [ _empty-download-folder ]
     cmds:
       - task: "{{.DOWNLOAD_TASK}}"
-      - cmd: "echo '{{.BUILDPACK_BRANCH}}' > {{.BUILDPACK_TMP_FOLDER}}/BRANCH"
+        silent: true
+      - cmd: "echo {{.BUILDPACK_VERSION}} > {{.BUILDPACK_TMP_FOLDER}}/VERSION"
         silent: true
 
   _download_from_git:
@@ -148,8 +152,7 @@ tasks:
       - cmd: >-
           docker run -v {{.ABSOLUTE_PROJECT_ROOT}}/{{.BUILDPACK_TMP_FOLDER}}:/downloads buildpack-deps
           bash -c "
-          git clone -b {{.BUILDPACK_BRANCH}} --depth 1 {{.BUILDPACK_REPOSITORY}} /downloads &> /dev/null &&
-          git ls-remote /downloads | grep 'refs/tags' | sort -r | grep -o '[^\\/]*$' | head -1 > /downloads/VERSION &&
+          git clone -b {{.BUILDPACK_VERSION}} --depth 1 {{.BUILDPACK_REPOSITORY}} /downloads &> /dev/null &&
           rm -r /downloads/.git &&
           chmod -R 777 /downloads
           "
@@ -174,12 +177,7 @@ tasks:
   _print-version:
     cmds:
       - cmd: >-
-          VERSION="$(cat {{.BUILDPACK_TMP_FOLDER}}/VERSION 2>/dev/null)";
-          if [ "$VERSION" == "" ]; then
-          VERSION=-;
-          fi;
-          echo version: $VERSION;
-          echo branch: $(cat {{.BUILDPACK_TMP_FOLDER}}/BRANCH);
+          echo Version: {{.BUILDPACK_VERSION}};
         silent: true
 
   _run_task:

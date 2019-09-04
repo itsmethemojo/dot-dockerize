@@ -1,9 +1,9 @@
 #!/bin/bash
 
-ENVIRONMENT_PARAMS_FOR_TESTING="DOWNLOAD_MODE=local_copy"
+BRANCH=_local_copy
 if [ ! -z "$1" ]
   then
-    ENVIRONMENT_PARAMS_FOR_TESTING="BRANCH=$1"
+    BRANCH=$1
 fi
 
 TEST_DIR=$(dirname "$(readlink -f "$0")")
@@ -14,14 +14,9 @@ if [ ! -d "$TEST_DIR/bats" ]; then
   "git clone --depth 1 https://github.com/sstephenson/bats.git /bats &> /dev/null && chmod -R 777 /bats"
 fi
 
-# cleanup artefacts
-rm -r $TEST_DIR/tmp &> /dev/null
-
-# copy starting point
 mkdir -p $TEST_DIR/tmp
-cp $TEST_DIR/../Taskfile.yml $TEST_DIR/tmp/
 
 # run tests in context of taskfile
 cd $TEST_DIR/tmp && \
-export $ENVIRONMENT_PARAMS_FOR_TESTING && \
+export BRANCH="$BRANCH" && \
 $TEST_DIR/bats/bin/bats $TEST_DIR/tests.bats
