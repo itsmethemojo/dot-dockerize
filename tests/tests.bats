@@ -84,3 +84,9 @@ function teardown {
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'i am running ruby' | wc -l)" = "1" ]
 }
+
+@test "BRANCH=0.5 task init succeeds. printed Version is 0.5" {
+  run echo "$(BRANCH=0.5 task init && echo FINAL_EXIT_CODE=$?)"
+  [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'Version: 0.5' | wc -l)" = "1" ]
+}
