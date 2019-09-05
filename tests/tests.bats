@@ -1,10 +1,5 @@
 #!/usr/bin/env bats
 
-# TODO left things to test
-# building and using a custom container
-# check install abort on every target but init
-
-
 function setup {
   find -mindepth 1 -delete
   # copy Taskfile as starting point
@@ -17,8 +12,20 @@ function teardown {
   find -mindepth 1 -delete
 }
 
-@test "task add without previous install fails and throws missing install error" {
+@test "task add without previous task init fails and throws missing install error" {
   run task add
+  [ "$status" -eq 1 ]
+  [ "$(echo $output | grep 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.' | wc -l)" = "1" ]
+}
+
+@test "task version without previous task init fails and throws missing install error" {
+  run task version
+  [ "$status" -eq 1 ]
+  [ "$(echo $output | grep 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.' | wc -l)" = "1" ]
+}
+
+@test "task run without previous task init fails and throws missing install error" {
+  run task run
   [ "$status" -eq 1 ]
   [ "$(echo $output | grep 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.' | wc -l)" = "1" ]
 }
@@ -95,4 +102,10 @@ function teardown {
   run echo "$(BRANCH=$BRANCH task init && touch buildpack/tmp/FILE && BRANCH=$BRANCH task init && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   [ "$(ls -1 buildpack/tmp/FILE | tr '\n' _)" != "buildpack/tmp/FILE_" ]
+}
+
+@test "running task my-ruby prints content of my-file from the my-ruby Dockerfile created container" {
+  run echo "$(BRANCH=$BRANCH task init && task my-ruby && echo FINAL_EXIT_CODE=$?)"
+  [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'my-file-content' | wc -l)" = "1" ]
 }
