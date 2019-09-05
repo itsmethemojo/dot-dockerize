@@ -75,7 +75,7 @@ function teardown {
 
 @test "running task ruby fails because default container has no ruby installed" {
   run  echo "$(task init && task ruby || echo FINAL_EXIT_CODE=$?)"
-  [ "$(echo $output | grep 'FINAL_EXIT_CODE=1' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "0" ]
   [ "$(echo $output | grep 'i am running ruby' | wc -l)" = "0" ]
 }
 
