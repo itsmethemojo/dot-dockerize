@@ -52,7 +52,7 @@ function teardown {
 }
 
 @test "name=first-task task add succeeds. first-task.sh was created" {
-  run echo "$(BRANCH=$BRANCH task init && name=first-task task add && echo FINAL_EXIT_CODE=$?)"
+  run echo "$(VERSION=$VERSION task init && name=first-task task add && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   # since bats can't handle parameters before the runner, this adds the response code to the output to be checked
   [ "$(ls -1 buildpack/scripts | tr '\n' _)" = "first-task.sh_" ]
@@ -66,7 +66,7 @@ function teardown {
 }
 
 @test "running task first-task succeeds. version and duration is printed" {
-  run echo "$(BRANCH=$BRANCH task init && name=first-task task add && task first-task && echo FINAL_EXIT_CODE=$?)"
+  run echo "$(VERSION=$VERSION task init && name=first-task task add && task first-task && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'Version:' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'Duration:' | wc -l)" = "1" ]
@@ -74,38 +74,38 @@ function teardown {
 }
 
 @test "running task ruby fails because default container has no ruby installed" {
-  run  echo "$(BRANCH=$BRANCH task init && task ruby || echo FINAL_EXIT_CODE=$?)"
+  run  echo "$(VERSION=$VERSION task init && task ruby || echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "0" ]
   [ "$(echo $output | grep 'i am running ruby' | wc -l)" = "0" ]
 }
 
 @test "running task ruby succeded because now the configured ruby container is used" {
-  run echo "$(BRANCH=$BRANCH task init && task ruby && echo FINAL_EXIT_CODE=$?)"
+  run echo "$(VERSION=$VERSION task init && task ruby && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'i am running ruby' | wc -l)" = "1" ]
 }
 
-@test "BRANCH=0.5 task init succeeds. printed Version is 0.5. version is also in Taskfile.yml" {
-  run echo "$(BRANCH=0.5 task init && echo FINAL_EXIT_CODE=$?)"
+@test "VERSION=0.5 task init succeeds. printed Version is 0.5. version is also in Taskfile.yml" {
+  run echo "$(VERSION=0.5 task init && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'Version: 0.5' | wc -l)" = "1" ]
   [ "$(cat Taskfile.yml | grep '#BUILDPACK VERSION: 0.5' | wc -l)" = "1" ]
 }
 
 @test "task init will reset modified Taskfile.yml" {
-  run echo "$(BRANCH=$BRANCH task init && echo "#modified line" >> Taskfile.yml && BRANCH=$BRANCH task init && echo FINAL_EXIT_CODE=$?)"
+  run echo "$(VERSION=$VERSION task init && echo "#modified line" >> Taskfile.yml && VERSION=$VERSION task init && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   [ "$(cat Taskfile.yml | grep '#modified line' | wc -l)" = "0" ]
 }
 
 @test "task init will clear tmp folder" {
-  run echo "$(BRANCH=$BRANCH task init && touch buildpack/tmp/FILE && BRANCH=$BRANCH task init && echo FINAL_EXIT_CODE=$?)"
+  run echo "$(VERSION=$VERSION task init && touch buildpack/tmp/FILE && VERSION=$VERSION task init && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   [ "$(ls -1 buildpack/tmp/FILE | tr '\n' _)" != "buildpack/tmp/FILE_" ]
 }
 
 @test "running task my-ruby prints content of my-file from the my-ruby Dockerfile created container" {
-  run echo "$(BRANCH=$BRANCH task init && task my-ruby && echo FINAL_EXIT_CODE=$?)"
+  run echo "$(VERSION=$VERSION task init && task my-ruby && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'my-file-content' | wc -l)" = "1" ]
 }

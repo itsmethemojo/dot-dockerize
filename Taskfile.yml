@@ -12,7 +12,7 @@ vars:
   SCRIPTS_FOLDER: "{{.BUILDPACK_FOLDER}}/scripts"
   BUILDPACK_VERSION:
     sh: >-
-      BUILDPACK_VERSION=$BRANCH;
+      BUILDPACK_VERSION=$VERSION;
       if [ "$BUILDPACK_VERSION" == "" ]; then
       BUILDPACK_VERSION=$(cat buildpack/tmp/VERSION 2> /dev/null);
       fi;
@@ -22,7 +22,7 @@ vars:
       echo $BUILDPACK_VERSION;
   DOWNLOAD_TASK:
     sh: >-
-      if [ "$BRANCH" == "_local_copy" ]; then
+      if [ "$VERSION" == "_local_copy" ]; then
       echo _copy_from_local;
       else
       echo _download_from_git;

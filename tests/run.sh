@@ -1,9 +1,9 @@
 #!/bin/bash
 
-BRANCH=_local_copy
+VERSION=_local_copy
 if [ ! -z "$1" ]
   then
-    BRANCH=$1
+    VERSION=$1
 fi
 
 TEST_DIR=$(dirname "$(readlink -f "$0")")
@@ -18,5 +18,5 @@ mkdir -p $TEST_DIR/tmp
 
 # run tests in context of taskfile
 cd $TEST_DIR/tmp && \
-export BRANCH="$BRANCH" && \
+export VERSION="$VERSION" && \
 $TEST_DIR/bats/bin/bats $TEST_DIR/tests.bats
