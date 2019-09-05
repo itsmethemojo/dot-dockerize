@@ -58,10 +58,6 @@ function teardown {
   [ "$(cat .gitignore)" = "/buildpack/tmp/" ]
 }
 
-# this test may fail when the image is not pulled yet and so the tested statements are not in the defined output lines
-# is reproducable by dropping the buildpack-deps container
-# rerun will succeed
-# maybe switch to output and grep
 @test "running task first-task succeeds. version and duration is printed" {
   run echo "$(BRANCH=$BRANCH task init && name=first-task task add && task first-task && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
