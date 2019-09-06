@@ -15,6 +15,8 @@ if [ ! -d "$TEST_DIR/bats" ]; then
 fi
 
 mkdir -p $TEST_DIR/tmp
+rm -rf $TEST_DIR/debug || true
+mkdir -p $TEST_DIR/debug
 
 # run tests in context of taskfile
 cd $TEST_DIR/tmp && \

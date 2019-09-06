@@ -1,3 +1,4 @@
-tests/tmp
-tests/bats
 /buildpack/
+/tests/bats
+/tests/debug
+/tests/tmp
