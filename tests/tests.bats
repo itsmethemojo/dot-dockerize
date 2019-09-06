@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 function setup {
-  find -mindepth 1 -delete
+  find . -mindepth 1 -delete
   # copy Taskfile as starting point
   cp ../../Taskfile.yml .
   # if exists copy config data for the current test case
@@ -9,7 +9,7 @@ function setup {
 }
 
 function teardown {
-  find -mindepth 1 -delete
+  find . -mindepth 1 -delete
 }
 
 @test "task add without previous task init fails and throws missing install error" {

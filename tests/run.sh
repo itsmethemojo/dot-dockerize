@@ -6,7 +6,7 @@ if [ ! -z "$1" ]
     VERSION=$1
 fi
 
-TEST_DIR=$(dirname "$(readlink -f "$0")")
+TEST_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # download test software
 if [ ! -d "$TEST_DIR/bats" ]; then
