@@ -52,11 +52,11 @@ function teardown {
   [ "$status" -eq 1 ]
 }
 
-@test "name=first-task task add succeeds. first-task.sh was created" {
-  run echo "$(VERSION=$VERSION task init && name=first-task task add && echo FINAL_EXIT_CODE=$?)"
+@test "name=first_task task add succeeds. first_task.sh was created" {
+  run echo "$(VERSION=$VERSION task init && name=first_task task add && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   # since bats can't handle parameters before the runner, this adds the response code to the output to be checked
-  [ "$(ls -1 buildpack/scripts | tr '\n' _)" = "first-task.sh_" ]
+  [ "$(ls -1 buildpack/scripts | tr '\n' _)" = "first_task.sh_" ]
 }
 
 @test "reinstall with task init succeeds, .gitignore content as expected after reinstall" {
@@ -65,8 +65,8 @@ function teardown {
   [ "$(cat .gitignore)" = "/buildpack/tmp/" ]
 }
 
-@test "running task first-task succeeds. version and duration is printed" {
-  run echo "$(VERSION=$VERSION task init && name=first-task task add && task first-task && echo FINAL_EXIT_CODE=$?)"
+@test "running task first_task succeeds. version and duration is printed" {
+  run echo "$(VERSION=$VERSION task init && name=first_task task add && task first_task && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'Buildpack Version:' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'Duration:' | wc -l)" = "1" ]
