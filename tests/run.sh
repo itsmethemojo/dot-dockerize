@@ -1,12 +1,12 @@
 #!/bin/bash
 
-BRANCH=_local_copy
+VERSION=_test_local_copy
 if [ ! -z "$1" ]
   then
-    BRANCH=$1
+    VERSION=$1
 fi
 
-TEST_DIR=$(dirname "$(readlink -f "$0")")
+TEST_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # download test software
 if [ ! -d "$TEST_DIR/bats" ]; then
@@ -15,8 +15,10 @@ if [ ! -d "$TEST_DIR/bats" ]; then
 fi
 
 mkdir -p $TEST_DIR/tmp
+rm -rf $TEST_DIR/debug || true
+mkdir -p $TEST_DIR/debug
 
 # run tests in context of taskfile
 cd $TEST_DIR/tmp && \
-export BRANCH="$BRANCH" && \
+export VERSION="$VERSION" && \
 $TEST_DIR/bats/bin/bats $TEST_DIR/tests.bats
