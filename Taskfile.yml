@@ -14,11 +14,11 @@ vars:
     sh: >-
       BUILDPACK_VERSION=$VERSION;
       if [ "$BUILDPACK_VERSION" == "" ]; then
-        BUILDPACK_VERSION=$(cat buildpack/tmp/VERSION 2> /dev/null);
-        fi;
+        BUILDPACK_VERSION="$(grep -e "^#BUILDPACK_VERSION:" Taskfile.yml 2>/dev/null | grep -o -e '[^:]*$')";
+      fi;
       if [ "$BUILDPACK_VERSION" == "" ]; then
         BUILDPACK_VERSION=$(git ls-remote -t git@github.com:itsmethemojo/buildpack.git | awk '{print $2}' | cut -d '/' -f 3 | cut -d '^' -f 1 | tail -1);
-        fi;
+      fi;
       echo $BUILDPACK_VERSION;
   DOWNLOAD_TASK:
     sh: >-
@@ -112,7 +112,7 @@ tasks:
   _copy_taskfile_from_download:
     cmds:
       - cmd: >-
-          echo -e "#BUILDPACK VERSION: {{.BUILDPACK_VERSION}}\n" > Taskfile.yml &&
+          echo -e "#BUILDPACK_VERSION: {{.BUILDPACK_VERSION}}\n" > Taskfile.yml &&
           cat {{.BUILDPACK_TMP_FOLDER}}/Taskfile.yml >> Taskfile.yml
         silent: true
 
@@ -137,8 +137,6 @@ tasks:
     deps: [ _empty_download_folder ]
     cmds:
       - task: "{{.DOWNLOAD_TASK}}"
-        silent: true
-      - cmd: "echo {{.BUILDPACK_VERSION}} > {{.BUILDPACK_TMP_FOLDER}}/VERSION"
         silent: true
 
   _download_from_git:
@@ -171,7 +169,7 @@ tasks:
   _print_version:
     cmds:
       - cmd: >-
-          echo Buidpack Version: {{.BUILDPACK_VERSION}};
+          echo Buildpack Version: {{.BUILDPACK_VERSION}};
         silent: true
 
   _run:

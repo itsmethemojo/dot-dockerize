@@ -32,13 +32,12 @@ function teardown {
   [ "$(echo $output | grep 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.' | wc -l)" = "1" ]
 }
 
-@test "task init succeeds. version is printed, folder structure is created, VERSION file is created" {
+@test "task init succeeds. version is printed, folder structure is created" {
   run task init
   [ "$status" -eq 0 ]
-  [ "$(echo $output | grep 'Version:' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'Buildpack Version:' | wc -l)" = "1" ]
   [ "$(ls -1 buildpack/ | tr '\n' _)" = "config_tmp_" ]
   [ "$(ls -1 buildpack/config/ | tr '\n' _)" = "docker_tasks.env_" ]
-  [ "$(ls -1 buildpack/tmp/VERSION | tr '\n' _)" = "buildpack/tmp/VERSION_" ]
   [ "$(cat .gitignore)" = "/buildpack/tmp/" ]
 }
 
@@ -60,17 +59,16 @@ function teardown {
   [ "$(ls -1 buildpack/scripts | tr '\n' _)" = "first-task.sh_" ]
 }
 
-@test "reinstall with task init succeeds, VERSION file exists, .gitignore content as expected after reinstall" {
+@test "reinstall with task init succeeds, .gitignore content as expected after reinstall" {
   run task init init
   [ "$status" -eq 0 ]
-  [ "$(ls -1 buildpack/tmp/VERSION | tr '\n' _)" = "buildpack/tmp/VERSION_" ]
   [ "$(cat .gitignore)" = "/buildpack/tmp/" ]
 }
 
 @test "running task first-task succeeds. version and duration is printed" {
   run echo "$(VERSION=$VERSION task init && name=first-task task add && task first-task && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
-  [ "$(echo $output | grep 'Version:' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'Buildpack Version:' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'Duration:' | wc -l)" = "1" ]
   [ "$(echo $output | grep ok | wc -l)" = "1" ]
 }
@@ -90,8 +88,8 @@ function teardown {
 @test "VERSION=0.5 task init succeeds. printed Version is 0.5. version is also in Taskfile.yml" {
   run echo "$(VERSION=0.5 task init && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
-  [ "$(echo $output | grep 'Version: 0.5' | wc -l)" = "1" ]
-  [ "$(cat Taskfile.yml | grep '#BUILDPACK VERSION: 0.5' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'Buildpack Version: 0.5' | wc -l)" = "1" ]
+  [ "$(cat Taskfile.yml | grep '#BUILDPACK_VERSION: 0.5' | wc -l)" = "1" ]
 }
 
 @test "task init will reset modified Taskfile.yml" {
