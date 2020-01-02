@@ -74,6 +74,18 @@ tasks:
       - task: _update_gitignore
       - task: _update_taskfile
 
+  upgrade:
+    desc: task upgrade                          will upgrade your buildpack version to the most current available
+    cmds:
+      - cmd: >-
+          NEWEST_VERSION=$(git ls-remote -t git@github.com:itsmethemojo/buildpack.git | awk '{print $2}' | cut -d '/' -f 3 | cut -d '^' -f 1 | tail -1);
+          if [ "$NEWEST_VERSION" == "{{.BUILDPACK_VERSION}}" ]; then
+            echo 'buildpack is already on the newest version';
+          else
+            VERSION=$NEWEST_VERSION task init
+          fi
+        silent: true
+
   # private targets
 
   _add_targets_for_available_tasks_to_taskfile:
