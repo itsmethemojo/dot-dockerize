@@ -14,18 +14,18 @@ vars:
     sh: >-
       BUILDPACK_VERSION=$VERSION;
       if [ "$BUILDPACK_VERSION" == "" ]; then
-      BUILDPACK_VERSION=$(cat buildpack/tmp/VERSION 2> /dev/null);
-      fi;
+        BUILDPACK_VERSION=$(cat buildpack/tmp/VERSION 2> /dev/null);
+        fi;
       if [ "$BUILDPACK_VERSION" == "" ]; then
-      BUILDPACK_VERSION=$(git ls-remote -t git@github.com:itsmethemojo/buildpack.git | awk '{print $2}' | cut -d '/' -f 3 | cut -d '^' -f 1 | tail -1);
-      fi;
+        BUILDPACK_VERSION=$(git ls-remote -t git@github.com:itsmethemojo/buildpack.git | awk '{print $2}' | cut -d '/' -f 3 | cut -d '^' -f 1 | tail -1);
+        fi;
       echo $BUILDPACK_VERSION;
   DOWNLOAD_TASK:
     sh: >-
       if [ "$VERSION" == "_test_local_copy" ]; then
-      echo _copy_from_local;
+        echo _copy_from_local;
       else
-      echo _download_from_git;
+        echo _download_from_git;
       fi
   ABSOLUTE_PROJECT_ROOT:
     sh: "pwd"
@@ -41,10 +41,10 @@ vars:
       CONFIG_FILE=buildpack/config/tasks.env
       RETURN_CONTAINER_NAME=buildpack-deps;
       if [ "$(grep -e "^${name}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-      RETURN_CONTAINER_NAME="$(grep -e "^${name}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
+        RETURN_CONTAINER_NAME="$(grep -e "^${name}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
       fi;
       if [ "$(grep -e "^${name}_dockerfile=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-      RETURN_CONTAINER_NAME="buildpack-{{.PROJECT_FOLDER_NAME}}-task-${name}";
+        RETURN_CONTAINER_NAME="buildpack-{{.PROJECT_FOLDER_NAME}}-task-${name}";
       fi;
       echo $RETURN_CONTAINER_NAME;
   TASK_DOCKERFILE_PATH:
@@ -88,7 +88,7 @@ tasks:
     cmds:
       - cmd: >-
           if [ "{{.TASK_DOCKERFILE_PATH}}" != "" ]; then
-          docker build -t {{.TASK_CONTAINER_NAME}} -f "{{.TASK_DOCKERFILE_PATH}}" $(dirname "{{.TASK_DOCKERFILE_PATH}}");
+            docker build -t {{.TASK_CONTAINER_NAME}} -f "{{.TASK_DOCKERFILE_PATH}}" $(dirname "{{.TASK_DOCKERFILE_PATH}}");
           fi;
         silent: true
 
@@ -96,8 +96,8 @@ tasks:
     cmds:
       - cmd: >-
           if [ ! -f "{{.BASH_SCRIPT_TEMPLATE}}" ]; then
-          echo 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.';
-          exit 1;
+            echo 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.';
+            exit 1;
           fi
         silent: true
 
@@ -163,15 +163,15 @@ tasks:
     cmds:
       - cmd: >-
           if [ "$name" == "" ]; then
-          echo 'missing Parameter name! Usage: name="my-task" task add';
-          exit 1;
+            echo 'missing Parameter name! Usage: name="my-task" task add';
+            exit 1;
           fi
         silent: true
 
   _print_version:
     cmds:
       - cmd: >-
-          echo Version: {{.BUILDPACK_VERSION}};
+          echo Buidpack Version: {{.BUILDPACK_VERSION}};
         silent: true
 
   _run:
@@ -187,9 +187,9 @@ tasks:
     cmds:
       - cmd: >-
           if [ -f "/.dockerenv" ]; then
-          bash {{.TASK_DIR_IN_CONTAINER}}/{{.TASK_SCRIPT_PATH}};
+            bash {{.TASK_DIR_IN_CONTAINER}}/{{.TASK_SCRIPT_PATH}};
           else
-          docker run {{.TASK_CONTAINER_MOUNT_PARAMETERS}} -w {{.TASK_DIR_IN_CONTAINER}} {{.TASK_CONTAINER_NAME}} bash {{.TASK_SCRIPT_PATH}};
+            docker run {{.TASK_CONTAINER_MOUNT_PARAMETERS}} -w {{.TASK_DIR_IN_CONTAINER}} {{.TASK_CONTAINER_NAME}} bash {{.TASK_SCRIPT_PATH}};
           fi;
         silent: true
 
@@ -210,10 +210,10 @@ tasks:
     cmds:
       - cmd: >-
           if [ ! -f .gitignore ]; then
-          echo "/{{.BUILDPACK_TMP_FOLDER}}"/ > .gitignore;
+            echo "/{{.BUILDPACK_TMP_FOLDER}}"/ > .gitignore;
           fi;
           if [ "$(grep "/{{.BUILDPACK_TMP_FOLDER}}/" .gitignore | wc -l)" = "0" ]; then
-          echo "/{{.BUILDPACK_TMP_FOLDER}}/" >> .gitignore;
+            echo "/{{.BUILDPACK_TMP_FOLDER}}/" >> .gitignore;
           fi
         silent: true
 
