@@ -1,4 +1,5 @@
   __TASKNAME__:
+    desc: task __TASKNAME__
     cmds:
-      - cmd: name="__TASKNAME__" task run
+      - cmd: name="__TASKNAME__" task _run
         silent: true

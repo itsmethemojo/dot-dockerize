@@ -22,7 +22,7 @@ vars:
       echo $BUILDPACK_VERSION;
   DOWNLOAD_TASK:
     sh: >-
-      if [ "$VERSION" == "_local_copy" ]; then
+      if [ "$VERSION" == "_test_local_copy" ]; then
       echo _copy_from_local;
       else
       echo _download_from_git;
@@ -54,35 +54,29 @@ vars:
 tasks:
 
   add:
-    deps: [ _check-init-needed ]
+    desc: name=new-task-name task add           adds a new task that can be later used with task new-task-name
+    deps: [ _check_init_needed ]
     cmds:
-      - task: _create-task-script
-      - task: _update-taskfile
+      - task: _create_task_script
+      - task: _update_taskfile
 
   version:
-    deps: [ _check-init-needed ]
+    desc: task version                          prints the current used version of task
+    deps: [ _check_init_needed ]
     cmds:
-      - task: _print-version
+      - task: _print_version
 
   init:
+    desc: task init                             setup initial config and downloads needed dependencies
     cmds:
-      - task: _download-buildpack
-      - task: _create-config-files
-      - task: _update-gitignore
-      - task: _update-taskfile
-
-  run:
-    deps: [ _check-init-needed ]
-    cmds:
-      - task: _start_watch_run
-      - task: _print-version
-      - task: _build_task_container
-      - task: _run_task
-      - task: _stop_watch_run
+      - task: _download_buildpack
+      - task: _create_config_files
+      - task: _update_gitignore
+      - task: _update_taskfile
 
   # private targets
 
-  _add-targets-for-available-tasks-to-taskfile:
+  _add_targets_for_available_tasks_to_taskfile:
     cmds:
       - cmd: >-
           for SCRIPT_FILE in $(ls -1 {{.SCRIPTS_FOLDER}} 2>/dev/null | sed -e 's/\..*$//'); do
@@ -98,7 +92,7 @@ tasks:
           fi;
         silent: true
 
-  _check-init-needed:
+  _check_init_needed:
     cmds:
       - cmd: >-
           if [ ! -f "{{.BASH_SCRIPT_TEMPLATE}}" ]; then
@@ -115,22 +109,22 @@ tasks:
           cp {{.BUILDPACK_FOLDER}}/../../../Taskfile.yml {{.BUILDPACK_TMP_FOLDER}}/Taskfile.yml;
         silent: true
 
-  _copy-taskfile-from-download:
+  _copy_taskfile_from_download:
     cmds:
-      - cmd: >
+      - cmd: >-
           echo -e "#BUILDPACK VERSION: {{.BUILDPACK_VERSION}}\n" > Taskfile.yml &&
           cat {{.BUILDPACK_TMP_FOLDER}}/Taskfile.yml >> Taskfile.yml
         silent: true
 
-  _create-config-files:
+  _create_config_files:
     cmds:
       - cmd: >-
           mkdir -p {{.CONFIG_FOLDER}}/docker;
           touch {{.CONFIG_FOLDER}}/tasks.env
         silent: true
 
-  _create-task-script:
-    deps: [ _has-name-parameter ]
+  _create_task_script:
+    deps: [ _has_name_parameter ]
     cmds:
       - cmd: >-
           mkdir -p {{.SCRIPTS_FOLDER}};
@@ -139,8 +133,8 @@ tasks:
           cat {{.BASH_SCRIPT_TEMPLATE}} >> {{.SCRIPTS_FOLDER}}/{{.name}}.sh
         silent: true
 
-  _download-buildpack:
-    deps: [ _empty-download-folder ]
+  _download_buildpack:
+    deps: [ _empty_download_folder ]
     cmds:
       - task: "{{.DOWNLOAD_TASK}}"
         silent: true
@@ -158,14 +152,14 @@ tasks:
           "
         silent: true
 
-  _empty-download-folder:
+  _empty_download_folder:
     cmds:
       - cmd: >-
           rm -rf {{.BUILDPACK_TMP_FOLDER}};
           mkdir -p {{.BUILDPACK_TMP_FOLDER}}
         silent: true
 
-  _has-name-parameter:
+  _has_name_parameter:
     cmds:
       - cmd: >-
           if [ "$name" == "" ]; then
@@ -174,11 +168,20 @@ tasks:
           fi
         silent: true
 
-  _print-version:
+  _print_version:
     cmds:
       - cmd: >-
           echo Version: {{.BUILDPACK_VERSION}};
         silent: true
+
+  _run:
+    deps: [ _check_init_needed ]
+    cmds:
+      - task: _start_watch_run
+      - task: _print_version
+      - task: _build_task_container
+      - task: _run_task
+      - task: _stop_watch_run
 
   _run_task:
     cmds:
@@ -203,7 +206,7 @@ tasks:
           rm {{.BUILDPACK_TMP_FOLDER}}/start-watch-$name
         silent: true
 
-  _update-gitignore:
+  _update_gitignore:
     cmds:
       - cmd: >-
           if [ ! -f .gitignore ]; then
@@ -214,8 +217,8 @@ tasks:
           fi
         silent: true
 
-  _update-taskfile:
+  _update_taskfile:
     cmds:
-      - task: _copy-taskfile-from-download
-      - task: _add-targets-for-available-tasks-to-taskfile
-      - task: _print-version
+      - task: _copy_taskfile_from_download
+      - task: _add_targets_for_available_tasks_to_taskfile
+      - task: _print_version

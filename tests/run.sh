@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION=_local_copy
+VERSION=_test_local_copy
 if [ ! -z "$1" ]
   then
     VERSION=$1

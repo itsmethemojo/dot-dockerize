@@ -25,8 +25,9 @@ function teardown {
   [ "$(echo $output | grep 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.' | wc -l)" = "1" ]
 }
 
-@test "task run without previous task init fails and throws missing install error" {
-  run task run
+#TODO check if testing a private target is necessary
+@test "task _run without previous task init fails and throws missing install error" {
+  run task _run
   [ "$status" -eq 1 ]
   [ "$(echo $output | grep 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.' | wc -l)" = "1" ]
 }
