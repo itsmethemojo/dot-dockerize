@@ -50,24 +50,34 @@ vars:
   TASK_DOCKERFILE_PATH:
     sh: >-
       echo "$(grep -e "^${name}_dockerfile=" buildpack/config/tasks.env 2>/dev/null | grep -o -e '[^=]*$')";
+  TESTS_OUTPUT_FILE:
+    sh: echo tests/output-$(date +%s).log;
 
 tasks:
 
   add:
-    desc: name=new-task-name task add           adds a new task that can be later used with task new-task-name
+    desc: name=new-task-name task add                       adds a new task that can be later used with task new-task-name
     deps: [ _check_init_needed ]
     cmds:
       - task: _create_task_script
       - task: _update_taskfile
 
-  version:
-    desc: task version                          prints the current used version of task
-    deps: [ _check_init_needed ]
+  buildpack_test:
+    desc: '[VERSION=version] task buildpack_test             runs tests for builpack framework, optional parameter to select a specific version to test'
+    deps: [ _download_buildpack ]
     cmds:
-      - task: _print_version
+      - cmd: >-
+          if [ "$VERSION" == "" ]; then
+            ./tests/run.sh | tee {{.TESTS_OUTPUT_FILE}};
+          else
+            cd buildpack/tmp && ./tests/run.sh "$VERSION" | tee ../../{{.TESTS_OUTPUT_FILE}};
+          fi;
+        ignore_error: true
+        silent: true
+      - task: _set_github_status
 
   init:
-    desc: task init                             setup initial config and downloads needed dependencies
+    desc: '[VERSION=version] task init                       setup initial config and downloads needed dependencies, optional parameter to select a specific version'
     cmds:
       - task: _download_buildpack
       - task: _create_config_files
@@ -75,7 +85,7 @@ tasks:
       - task: _update_taskfile
 
   upgrade:
-    desc: task upgrade                          will upgrade your buildpack version to the most current available
+    desc: task upgrade                                      will upgrade your buildpack version to the most current available
     cmds:
       - cmd: >-
           NEWEST_VERSION=$(git ls-remote -t git@github.com:itsmethemojo/buildpack.git | awk '{print $2}' | cut -d '/' -f 3 | cut -d '^' -f 1 | tail -1);
@@ -85,6 +95,12 @@ tasks:
             VERSION=$NEWEST_VERSION task init
           fi
         silent: true
+
+  version:
+    desc: task version                                     prints the current used version of task
+    deps: [ _check_init_needed ]
+    cmds:
+      - task: _print_version
 
   # private targets
 
@@ -157,6 +173,9 @@ tasks:
           docker run -v {{.ABSOLUTE_PROJECT_ROOT}}/{{.BUILDPACK_TMP_FOLDER}}:/downloads buildpack-deps
           bash -c "
           git clone -b {{.BUILDPACK_VERSION}} --depth 1 {{.BUILDPACK_REPOSITORY}} /downloads &> /dev/null &&
+          cd /downloads &&
+          git log -1 --pretty=format:%H > REVISION &&
+          cd .. &&
           rm -r /downloads/.git &&
           chmod -R 777 /downloads
           "
@@ -200,6 +219,30 @@ tasks:
             bash {{.TASK_DIR_IN_CONTAINER}}/{{.TASK_SCRIPT_PATH}};
           else
             docker run {{.TASK_CONTAINER_MOUNT_PARAMETERS}} -w {{.TASK_DIR_IN_CONTAINER}} {{.TASK_CONTAINER_NAME}} bash {{.TASK_SCRIPT_PATH}};
+          fi;
+        silent: true
+
+  _set_github_status:
+    cmds:
+      - cmd: >-
+          if [ "$VERSION" != "" ] && [ "$GITHUB_STATUS_TOKEN" != "" ]; then
+            NUMBER_OF_TESTS=$(head -1 {{.TESTS_OUTPUT_FILE}} | cut -c 4-);
+            NUMBER_OF_FAILED_TESTS=$(cat {{.TESTS_OUTPUT_FILE}} | grep -e '^not ok .*$' | wc -l);
+            STATE=failure;
+            if [ "$NUMBER_OF_FAILED_TESTS" == "0" ]; then
+              STATE=success;
+            fi;
+            if [ "$TEST_SYSTEM" == "" ]; then
+              TEST_SYSTEM=$(cat /etc/os-release | grep PRETTY_NAME | grep -o -e '[^=]*$' | tr '"' ' ');
+            fi;
+            if [ "$TEST_SYSTEM" == "" ]; then
+              echo "Can not determine test system. Please provide it (e.g. Windows10, Debian, ...) via TEST_SYSTEM parameter"
+              exit 1;
+            fi;
+            JSON_DATA="{\"context\": \"$TEST_SYSTEM\",\"state\": \"$STATE\",\"description\": \"$NUMBER_OF_TESTS test(s) run, $NUMBER_OF_FAILED_TESTS test(s) failed\"}";
+            API_ENDPOINT=https://api.github.com/repos/itsmethemojo/buildpack/statuses/$(cat {{.BUILDPACK_TMP_FOLDER}}/REVISION);
+            echo "updating status on github";
+            curl -H "Authorization: token $GITHUB_STATUS_TOKEN" --data "$JSON_DATA" -X POST $API_ENDPOINT &> /dev/null
           fi;
         silent: true
 

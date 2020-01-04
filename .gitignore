@@ -1,4 +1,5 @@
 /buildpack/
 /tests/bats
 /tests/debug
+/tests/*.log
 /tests/tmp
