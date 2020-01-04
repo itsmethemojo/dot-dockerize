@@ -65,3 +65,16 @@ mytask_dockerfile=buildpack/config/docker/mytask/Dockerfile
 ```
 task mytask
 ```
+
+## testing buildpack
+
+```
+task buildpack_test
+```
+
+to run the tests against a specific branch or tag
+```
+VERSION=branch-or-tag-name task buildpack_test
+```
+
+tests cli output will be stored in `tests/debug`
