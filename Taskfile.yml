@@ -1,3 +1,21 @@
+# use task name grouping
+# improve when to clone when to copy stuff
+# remove any expensive container usage from vars initialization
+# move run.sh into taskfile
+# use buildpack:: grouping for public targets
+# determine latest version when needed in init task
+
+# group directory_vars in DIRECTORY_
+
+# DOWNLOAD_TASK entfernen
+# test modus nicht über version parameter bestimmen sondern über z.B. ein file was irgendwo liegt
+# task name switch entfernen
+# auf testmodus prüfen und kopieren und dann exit 0, dann version bestimmen wenn die noch nicht da ist, danach den clone machen
+
+
+
+
+
 version: '2'
 
 expansions: 5
@@ -112,14 +130,6 @@ tasks:
           done
         silent: true
 
-  _build_task_container:
-    cmds:
-      - cmd: >-
-          if [ "{{.TASK_DOCKERFILE_PATH}}" != "" ]; then
-            docker build -t {{.TASK_CONTAINER_NAME}} -f "{{.TASK_DOCKERFILE_PATH}}" $(dirname "{{.TASK_DOCKERFILE_PATH}}");
-          fi;
-        silent: true
-
   _check_init_needed:
     cmds:
       - cmd: >-
@@ -206,21 +216,10 @@ tasks:
   _run:
     deps: [ _check_init_needed ]
     cmds:
-      - task: _start_watch_run
+      - task: _script:start_watch
       - task: _print_version
-      - task: _build_task_container
-      - task: _run_task
-      - task: _stop_watch_run
-
-  _run_task:
-    cmds:
-      - cmd: >-
-          if [ -f "/.dockerenv" ]; then
-            bash {{.TASK_DIR_IN_CONTAINER}}/{{.TASK_SCRIPT_PATH}};
-          else
-            docker run {{.TASK_CONTAINER_MOUNT_PARAMETERS}} -w {{.TASK_DIR_IN_CONTAINER}} {{.TASK_CONTAINER_NAME}} bash {{.TASK_SCRIPT_PATH}};
-          fi;
-        silent: true
+      - task: _script:run
+      - task: _script:stop_watch
 
   _set_github_status:
     cmds:
@@ -246,13 +245,26 @@ tasks:
           fi;
         silent: true
 
-  _start_watch_run:
+  _script:run:
+    cmds:
+      - cmd: >-
+          if [ "{{.TASK_DOCKERFILE_PATH}}" != "" ]; then
+            docker build -t {{.TASK_CONTAINER_NAME}} -f "{{.TASK_DOCKERFILE_PATH}}" $(dirname "{{.TASK_DOCKERFILE_PATH}}");
+          fi;
+          if [ -f "/.dockerenv" ]; then
+            bash {{.TASK_DIR_IN_CONTAINER}}/{{.TASK_SCRIPT_PATH}};
+          else
+            docker run {{.TASK_CONTAINER_MOUNT_PARAMETERS}} -w {{.TASK_DIR_IN_CONTAINER}} {{.TASK_CONTAINER_NAME}} bash {{.TASK_SCRIPT_PATH}};
+          fi;
+        silent: true
+
+  _script:start_watch:
     cmds:
       - cmd: >-
           echo $(date +%s) > {{.BUILDPACK_TMP_FOLDER}}/start-watch-$name
         silent: true
 
-  _stop_watch_run:
+  _script:stop_watch:
     cmds:
       - cmd: >-
           echo -e "\nDuration: $(( $(date +%s) - $( cat {{.BUILDPACK_TMP_FOLDER}}/start-watch-$name ) ))s" &&
