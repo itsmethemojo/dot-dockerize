@@ -1,11 +1,5 @@
 #!/bin/bash
 
-VERSION=_test_local_copy
-if [ ! -z "$1" ]
-  then
-    VERSION=$1
-fi
-
 TEST_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # download test software
