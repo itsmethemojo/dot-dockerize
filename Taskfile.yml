@@ -47,25 +47,6 @@ vars:
     sh: "pwd"
   PROJECT_FOLDER_NAME:
     sh: "echo ${PWD##*/}"
-  TASK_SCRIPT_PATH: "{{.SCRIPTS_FOLDER}}/$name.sh"
-  TASK_CONFIG_FILE: "{{.CONFIG_FOLDER}}/tasks.env"
-  TASK_DEFAULT_CONTAINER: "buildpack-deps"
-  TASK_DIR_IN_CONTAINER: "/container-$name"
-  TASK_CONTAINER_MOUNT_PARAMETERS: "-v $(pwd):{{.TASK_DIR_IN_CONTAINER}}"
-  TASK_CONTAINER_NAME:
-    sh: >-
-      CONFIG_FILE=buildpack/config/tasks.env
-      RETURN_CONTAINER_NAME=buildpack-deps;
-      if [ "$(grep -e "^${name}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-        RETURN_CONTAINER_NAME="$(grep -e "^${name}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
-      fi;
-      if [ "$(grep -e "^${name}_dockerfile=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-        RETURN_CONTAINER_NAME="buildpack-{{.PROJECT_FOLDER_NAME}}-task-${name}";
-      fi;
-      echo $RETURN_CONTAINER_NAME;
-  TASK_DOCKERFILE_PATH:
-    sh: >-
-      echo "$(grep -e "^${name}_dockerfile=" buildpack/config/tasks.env 2>/dev/null | grep -o -e '[^=]*$')";
   TESTS_OUTPUT_FILE:
     sh: echo tests/output-$(date +%s).log;
 
@@ -164,7 +145,7 @@ tasks:
   _has_name_parameter:
     cmds:
       - cmd: >-
-          if [ "$name" == "" ]; then
+          if [ "{{.name}}" == "" ]; then
             echo 'missing Parameter name! Usage: name="my-task" task add';
             exit 1;
           fi
@@ -176,17 +157,10 @@ tasks:
           echo Buildpack Version: {{.BUILDPACK_VERSION}};
         silent: false
 
-  _run:
-    deps: [ _check_init_needed ]
-    cmds:
-      - task: _script:start_watch
-      - task: _print_version
-      - task: _script:run
-      - task: _script:stop_watch
-
   _script:run:
     cmds:
       - cmd: >-
+          ls {{.BUILDPACK_TMP_FOLDER}}/;
           if [ "{{.TASK_DOCKERFILE_PATH}}" != "" ]; then
             docker build -t {{.TASK_CONTAINER_NAME}} -f "{{.TASK_DOCKERFILE_PATH}}" $(dirname "{{.TASK_DOCKERFILE_PATH}}");
           fi;
@@ -196,18 +170,38 @@ tasks:
             docker run {{.TASK_CONTAINER_MOUNT_PARAMETERS}} -w {{.TASK_DIR_IN_CONTAINER}} {{.TASK_CONTAINER_NAME}} bash {{.TASK_SCRIPT_PATH}};
           fi;
         silent: false
+    vars:
+      TASK_CONFIG_FILE: "{{.CONFIG_FOLDER}}/tasks.env"
+      TASK_SCRIPT_PATH: "{{.SCRIPTS_FOLDER}}/{{.name}}.sh"
+      TASK_DEFAULT_CONTAINER: "buildpack-deps"
+      TASK_DIR_IN_CONTAINER: "/container-{{.name}}"
+      TASK_CONTAINER_MOUNT_PARAMETERS: "-v $(pwd):{{.TASK_DIR_IN_CONTAINER}}"
+      TASK_CONTAINER_NAME:
+        sh: >-
+          CONFIG_FILE=buildpack/config/tasks.env
+          RETURN_CONTAINER_NAME=buildpack-deps;
+          if [ "$(grep -e "^{{.name}}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
+            RETURN_CONTAINER_NAME="$(grep -e "^{{.name}}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
+          fi;
+          if [ "$(grep -e "^{{.name}}_dockerfile=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
+            RETURN_CONTAINER_NAME="buildpack-{{.PROJECT_FOLDER_NAME}}-task-{{.name}}";
+          fi;
+          echo $RETURN_CONTAINER_NAME;
+      TASK_DOCKERFILE_PATH:
+        sh: >-
+          echo "$(grep -e "^{{.name}}_dockerfile=" buildpack/config/tasks.env 2>/dev/null | grep -o -e '[^=]*$')";
 
   _script:start_watch:
     cmds:
       - cmd: >-
-          echo $(date +%s) > {{.BUILDPACK_TMP_FOLDER}}/start-watch-$name
+          echo $(date +%s) > {{.BUILDPACK_TMP_FOLDER}}/start-watch-{{.name}}
         silent: false
 
   _script:stop_watch:
     cmds:
       - cmd: >-
-          echo -e "\nDuration: $(( $(date +%s) - $( cat {{.BUILDPACK_TMP_FOLDER}}/start-watch-$name ) ))s" &&
-          rm {{.BUILDPACK_TMP_FOLDER}}/start-watch-$name
+          echo -e "\nDuration: $(( $(date +%s) - $( cat {{.BUILDPACK_TMP_FOLDER}}/start-watch-{{.name}} ) ))s" &&
+          rm {{.BUILDPACK_TMP_FOLDER}}/start-watch-{{.name}}
         silent: false
 
   _init:update_gitignore:
