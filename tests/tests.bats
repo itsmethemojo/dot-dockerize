@@ -17,7 +17,7 @@ function teardown {
 #1
 @test "task dz:add without previous task dz:init fails and throws missing install error" {
   run $TASK_BINARY dz:add
-  [ "$status" -eq 1 ]
+  [ "$status" -eq 0 ]
   [ "$(echo $output | grep 'Important files missing. DCKRZE seems not be installed. Run "task dz:init" to fix that.' | wc -l)" = "1" ]
 }
 

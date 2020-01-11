@@ -20,8 +20,6 @@ vars:
       echo $DCKRZ_VERSION;
   FILE_BASH_SCRIPT_TEMPLATE: "{{.DIRECTORY_DCKRZ_TMP}}/bash/templates/run-task.sh"
   FILE_TARGET_TEMPLATE: "{{.DIRECTORY_DCKRZ_TMP}}/taskfiles/templates/target-to-run-task.yml"
-  FILE_TESTS_OUTPUT:
-    sh: echo tests/output-$(date +%s).log;
   GIT_REPOSITORY: 'https://github.com/itsmethemojo/buildpack.git'
   PROJECT_FOLDER_NAME:
     sh: "echo ${PWD##*/}"
@@ -227,7 +225,7 @@ tasks:
     dir: tests/tmp
     cmds:
       - cmd: >-
-          TASK_BINARY="{{.TASK_BINARY}}" {{.PROJECT_PATH_ABSOLUTE}}/tests/bats/bin/bats {{.PROJECT_PATH_ABSOLUTE}}/tests/tests.bats | tee "{{.PROJECT_PATH_ABSOLUTE}}/{{.FILE_TESTS_OUTPUT}}";
+          TASK_BINARY="{{.TASK_BINARY}}" {{.PROJECT_PATH_ABSOLUTE}}/tests/bats/bin/bats {{.PROJECT_PATH_ABSOLUTE}}/tests/tests.bats;
         silent: true
 
 #TODO when local testing there is no version to print here, maybe retrieve from existing file?

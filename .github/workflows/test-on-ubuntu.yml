@@ -5,7 +5,7 @@ on:
     types: [created, deleted]
 
 jobs:
-  build:
+  test:
 
     runs-on: ubuntu-latest
 
@@ -23,3 +23,21 @@ jobs:
     - name: run tests
       run: |
         TASK_BINARY=$(pwd)/task $(pwd)/task dz:test
+    - name: print debug output if tests fail
+      if: failure()
+      run: |
+        for FILE in $(ls tests/debug);
+        do
+        echo -e "$FILE\n\n"
+        cat tests/debug/$FILE
+        echo "------------"
+        done
+    - name: print debug output if tests succeed
+      if: failure()
+      run: |
+        for FILE in $(ls tests/debug);
+        do
+        echo -e "$FILE\n\n"
+        cat tests/debug/$FILE
+        echo "------------"
+        done
