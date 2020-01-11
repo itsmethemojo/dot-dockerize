@@ -13,9 +13,13 @@ jobs:
     - uses: actions/checkout@v1
     - name: download task
       run: |
-        ls -la /usr/local/bin
         wget https://taskfile.dev/install.sh
         chmod +x install.sh
         ./install.sh -b $(pwd)
-        ls -la task
-        ls -la /usr/local/bin
+    - name: download bats
+      run: |
+        git clone --depth 1 https://github.com/sstephenson/bats.git tests/bats
+        chmod +x tests/bats/bin/bats
+    - name: run tests
+      run: |
+        TASK_BINARY=$(pwd)/task $(pwd)/task dz:test

@@ -27,6 +27,13 @@ vars:
     sh: "echo ${PWD##*/}"
   PROJECT_PATH_ABSOLUTE:
     sh: "pwd"
+  TASK_BINARY:
+    sh: >-
+      RETURN_TASK_BINARY=task;
+      if [ "$TASK_BINARY" != "" ]; then
+      RETURN_TASK_BINARY="$TASK_BINARY";
+      fi;
+      echo $RETURN_TASK_BINARY;
   TEST_MODE:
     sh: >-
       if [ -f "../tests.bats" ]; then
@@ -220,7 +227,7 @@ tasks:
     dir: tests/tmp
     cmds:
       - cmd: >-
-          {{.PROJECT_PATH_ABSOLUTE}}/tests/bats/bin/bats {{.PROJECT_PATH_ABSOLUTE}}/tests/tests.bats | tee "{{.PROJECT_PATH_ABSOLUTE}}/{{.FILE_TESTS_OUTPUT}}";
+          TASK_BINARY="{{.TASK_BINARY}}" {{.PROJECT_PATH_ABSOLUTE}}/tests/bats/bin/bats {{.PROJECT_PATH_ABSOLUTE}}/tests/tests.bats | tee "{{.PROJECT_PATH_ABSOLUTE}}/{{.FILE_TESTS_OUTPUT}}";
         silent: true
 
 #TODO when local testing there is no version to print here, maybe retrieve from existing file?
