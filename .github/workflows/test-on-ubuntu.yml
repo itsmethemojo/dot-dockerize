@@ -1,0 +1,37 @@
+name: test-on-ubuntu
+
+on:
+  pull_request_review_comment:
+    types: [created, deleted]
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: download task
+      run: |
+        wget https://taskfile.dev/install.sh
+        chmod +x install.sh
+        ./install.sh -b $(pwd)
+    - name: download bats
+      run: |
+        git clone --depth 1 https://github.com/sstephenson/bats.git tests/bats
+        chmod +x tests/bats/bin/bats
+    - name: run tests
+      run: |
+        TASK_BINARY=$(pwd)/task $(pwd)/task dz:test
+    - name: print debug output
+      if: failure()
+      run: |
+        for FILE in $(ls tests/debug);
+        do
+        echo -e "$FILE\n\n"
+        cat tests/debug/$FILE
+        echo "------------"
+        done

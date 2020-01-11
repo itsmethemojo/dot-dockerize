@@ -3,275 +3,245 @@ version: '2'
 expansions: 5
 
 vars:
-  BUILDPACK_REPOSITORY: 'https://github.com/itsmethemojo/buildpack.git'
-  BUILDPACK_FOLDER: buildpack
-  BUILDPACK_TMP_FOLDER: "{{.BUILDPACK_FOLDER}}/tmp"
-  CONFIG_FOLDER: "{{.BUILDPACK_FOLDER}}/config"
-  BASH_SCRIPT_TEMPLATE: "{{.BUILDPACK_TMP_FOLDER}}/bash/templates/run-task.sh"
-  TASK_TARGET_TEMPLATE: "{{.BUILDPACK_TMP_FOLDER}}/taskfiles/templates/target-to-run-task.yml"
-  SCRIPTS_FOLDER: "{{.BUILDPACK_FOLDER}}/scripts"
-  BUILDPACK_VERSION:
+  API_TAGS: 'https://api.github.com/repos/itsmethemojo/buildpack/tags'
+  DIRECTORY_DCKRZ: .dckrz
+  DIRECTORY_DCKRZ_TMP: "{{.DIRECTORY_DCKRZ}}/tmp"
+  DIRECTORY_CONFIG: "{{.DIRECTORY_DCKRZ}}/config"
+  DIRECTORY_SCRIPTS: "{{.DIRECTORY_DCKRZ}}/scripts"
+  DCKRZ_VERSION:
     sh: >-
-      BUILDPACK_VERSION=$VERSION;
-      if [ "$BUILDPACK_VERSION" == "" ]; then
-        BUILDPACK_VERSION="$(grep -e "^#BUILDPACK_VERSION:" Taskfile.yml 2>/dev/null | grep -o -e '[^:]*$')";
+      DCKRZ_VERSION=$VERSION;
+      if [ "$DCKRZ_VERSION" == "" ]; then
+        DCKRZ_VERSION="$(grep -e "^#DCKRZ_VERSION:" Taskfile.yml 2>/dev/null | grep -o -e '[^:]*$')";
       fi;
-      if [ "$BUILDPACK_VERSION" == "" ]; then
-        BUILDPACK_VERSION=$(git ls-remote -t git@github.com:itsmethemojo/buildpack.git | awk '{print $2}' | cut -d '/' -f 3 | cut -d '^' -f 1 | tail -1);
+      if [ "$DCKRZ_VERSION" == "" ] && [ ! -f "../tests.bats" ]; then
+        DCKRZ_VERSION=$(docker run buildpack-deps:curl bash -c 'curl -s https://api.github.com/repos/itsmethemojo/buildpack/tags | grep "\"name\":" | head -1 | cut -d":" -f2 | cut -d"\"" -f2');
       fi;
-      echo $BUILDPACK_VERSION;
-  DOWNLOAD_TASK:
-    sh: >-
-      if [ "$VERSION" == "_test_local_copy" ]; then
-        echo _copy_from_local;
-      else
-        echo _download_from_git;
-      fi
-  ABSOLUTE_PROJECT_ROOT:
-    sh: "pwd"
+      echo $DCKRZ_VERSION;
+  FILE_BASH_SCRIPT_TEMPLATE: "{{.DIRECTORY_DCKRZ_TMP}}/bash/templates/run-task.sh"
+  FILE_TARGET_TEMPLATE: "{{.DIRECTORY_DCKRZ_TMP}}/taskfiles/templates/target-to-run-task.yml"
+  GIT_REPOSITORY: 'https://github.com/itsmethemojo/buildpack.git'
   PROJECT_FOLDER_NAME:
     sh: "echo ${PWD##*/}"
-  TASK_SCRIPT_PATH: "{{.SCRIPTS_FOLDER}}/$name.sh"
-  TASK_CONFIG_FILE: "{{.CONFIG_FOLDER}}/tasks.env"
-  TASK_DEFAULT_CONTAINER: "buildpack-deps"
-  TASK_DIR_IN_CONTAINER: "/container-$name"
-  TASK_CONTAINER_MOUNT_PARAMETERS: "-v $(pwd):{{.TASK_DIR_IN_CONTAINER}}"
-  TASK_CONTAINER_NAME:
+  PROJECT_PATH_ABSOLUTE:
+    sh: "pwd"
+  TASK_BINARY:
     sh: >-
-      CONFIG_FILE=buildpack/config/tasks.env
-      RETURN_CONTAINER_NAME=buildpack-deps;
-      if [ "$(grep -e "^${name}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-        RETURN_CONTAINER_NAME="$(grep -e "^${name}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
+      RETURN_TASK_BINARY=task;
+      if [ "$TASK_BINARY" != "" ]; then
+      RETURN_TASK_BINARY="$TASK_BINARY";
       fi;
-      if [ "$(grep -e "^${name}_dockerfile=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-        RETURN_CONTAINER_NAME="buildpack-{{.PROJECT_FOLDER_NAME}}-task-${name}";
-      fi;
-      echo $RETURN_CONTAINER_NAME;
-  TASK_DOCKERFILE_PATH:
+      echo $RETURN_TASK_BINARY;
+  TEST_MODE:
     sh: >-
-      echo "$(grep -e "^${name}_dockerfile=" buildpack/config/tasks.env 2>/dev/null | grep -o -e '[^=]*$')";
-  TESTS_OUTPUT_FILE:
-    sh: echo tests/output-$(date +%s).log;
+      if [ -f "../tests.bats" ]; then
+      echo 1;
+      else
+      echo 0;
+      fi;
 
 tasks:
 
-  add:
-    desc: name=new-task-name task add                       adds a new task that can be later used with task new-task-name
-    deps: [ _check_init_needed ]
+  dz:add:
+    desc: "adds a new task that can be later used with task foo_bar\n                NAME=foo_bar task dz:add\n"
+    deps: [ _init:check_if_init_needed ]
     cmds:
-      - task: _create_task_script
-      - task: _update_taskfile
+      - task: _add:create_task_script
+      - task: _update:taskfile
+      - task: _print_version
 
-  buildpack_test:
-    desc: '[VERSION=version] task buildpack_test             runs tests for builpack framework, optional parameter to select a specific version to test'
-    deps: [ _download_buildpack ]
+  dz:init:
+    desc: "setup initial config and downloads needed dependencies, optional parameter to select a specific version\n                [VERSION=version] task dz:init\n"
+    cmds:
+      - task: _init:download
+      - task: _init:create_config_files
+      - task: _init:update_gitignore
+      - task: _update:taskfile
+      - task: _print_version
+
+  dz:test:
+    desc: "runs tests for .dckrz framework\n"
+    cmds:
+      - task: _test:clear
+      - task: _test:download_bats
+      - task: _test:run
+
+  dz:upgrade:
+    deps: [ _init:check_if_init_needed ]
+    desc: "will upgrade your .dckrz framework to the most current version available\n"
     cmds:
       - cmd: >-
-          if [ "$VERSION" == "" ]; then
-            ./tests/run.sh | tee {{.TESTS_OUTPUT_FILE}};
+          NEWEST_VERSION=$(docker run buildpack-deps:curl bash -c 'curl -s {{.API_TAGS}} | grep "\"name\":" | head -1 | cut -d":" -f2 | cut -d"\"" -f2');
+          if [ "$NEWEST_VERSION" == "{{.DCKRZ_VERSION}}" ]; then
+            echo 'DCKRZE is already on the newest version';
           else
-            cd buildpack/tmp && ./tests/run.sh "$VERSION" | tee ../../{{.TESTS_OUTPUT_FILE}};
-          fi;
-        ignore_error: true
-        silent: true
-      - task: _set_github_status
-
-  init:
-    desc: '[VERSION=version] task init                       setup initial config and downloads needed dependencies, optional parameter to select a specific version'
-    cmds:
-      - task: _download_buildpack
-      - task: _create_config_files
-      - task: _update_gitignore
-      - task: _update_taskfile
-
-  upgrade:
-    desc: task upgrade                                      will upgrade your buildpack version to the most current available
-    cmds:
-      - cmd: >-
-          NEWEST_VERSION=$(git ls-remote -t git@github.com:itsmethemojo/buildpack.git | awk '{print $2}' | cut -d '/' -f 3 | cut -d '^' -f 1 | tail -1);
-          if [ "$NEWEST_VERSION" == "{{.BUILDPACK_VERSION}}" ]; then
-            echo 'buildpack is already on the newest version';
-          else
-            VERSION=$NEWEST_VERSION task init
+            VERSION=$NEWEST_VERSION task dz:init
           fi
         silent: true
 
-  version:
-    desc: task version                                     prints the current used version of task
-    deps: [ _check_init_needed ]
+  dz:version:
+    desc: "prints the current used version of .dckrz\n"
+    deps: [ _init:check_if_init_needed ]
     cmds:
       - task: _print_version
 
   # private targets
 
-  _add_targets_for_available_tasks_to_taskfile:
+  _add:create_task_script:
     cmds:
       - cmd: >-
-          for SCRIPT_FILE in $(ls -1 {{.SCRIPTS_FOLDER}} 2>/dev/null | sed -e 's/\..*$//'); do
-          cat {{.TASK_TARGET_TEMPLATE}} | sed "s/__TASKNAME__/$SCRIPT_FILE/g" >> Taskfile.yml;
-          done
-        silent: true
-
-  _build_task_container:
-    cmds:
-      - cmd: >-
-          if [ "{{.TASK_DOCKERFILE_PATH}}" != "" ]; then
-            docker build -t {{.TASK_CONTAINER_NAME}} -f "{{.TASK_DOCKERFILE_PATH}}" $(dirname "{{.TASK_DOCKERFILE_PATH}}");
+          if [ "$NAME" == "" ]; then
+            echo 'missing Parameter name! Usage: NAME="foo_bar" task dz:add';
+            exit 1;
           fi;
+          mkdir -p {{.DIRECTORY_SCRIPTS}};
+          touch {{.DIRECTORY_SCRIPTS}}/$NAME.sh;
+          chmod +x {{.DIRECTORY_SCRIPTS}}/$NAME.sh;
+          cat {{.FILE_BASH_SCRIPT_TEMPLATE}} > {{.DIRECTORY_SCRIPTS}}/$NAME.sh
         silent: true
 
-  _check_init_needed:
+  _init:check_if_init_needed:
     cmds:
       - cmd: >-
-          if [ ! -f "{{.BASH_SCRIPT_TEMPLATE}}" ]; then
-            echo 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.';
+          if [ ! -f "{{.FILE_BASH_SCRIPT_TEMPLATE}}" ]; then
+            echo 'Important files missing. DCKRZE seems not be installed. Run "task dz:init" to fix that.';
             exit 1;
           fi
         silent: true
 
-  _copy_from_local:
+  _init:create_config_files:
     cmds:
       - cmd: >-
-          cp -R {{.BUILDPACK_FOLDER}}/../../../taskfiles {{.BUILDPACK_TMP_FOLDER}};
-          cp -R {{.BUILDPACK_FOLDER}}/../../../bash {{.BUILDPACK_TMP_FOLDER}};
-          cp {{.BUILDPACK_FOLDER}}/../../../Taskfile.yml {{.BUILDPACK_TMP_FOLDER}}/Taskfile.yml;
+          mkdir -p {{.DIRECTORY_CONFIG}}/docker;
+          touch {{.DIRECTORY_CONFIG}}/tasks.env
         silent: true
 
-  _copy_taskfile_from_download:
+#TODO when local testing write version already in file?
+  _init:download:
     cmds:
+      - task: _util:empty_directory
+        vars: {DIR: "{{.PROJECT_PATH_ABSOLUTE}}/{{.DIRECTORY_DCKRZ_TMP}}"}
       - cmd: >-
-          echo -e "#BUILDPACK_VERSION: {{.BUILDPACK_VERSION}}\n" > Taskfile.yml &&
-          cat {{.BUILDPACK_TMP_FOLDER}}/Taskfile.yml >> Taskfile.yml
-        silent: true
-
-  _create_config_files:
-    cmds:
-      - cmd: >-
-          mkdir -p {{.CONFIG_FOLDER}}/docker;
-          touch {{.CONFIG_FOLDER}}/tasks.env
-        silent: true
-
-  _create_task_script:
-    deps: [ _has_name_parameter ]
-    cmds:
-      - cmd: >-
-          mkdir -p {{.SCRIPTS_FOLDER}};
-          touch {{.SCRIPTS_FOLDER}}/{{.name}}.sh;
-          chmod +x {{.SCRIPTS_FOLDER}}/{{.name}}.sh;
-          cat {{.BASH_SCRIPT_TEMPLATE}} >> {{.SCRIPTS_FOLDER}}/{{.name}}.sh
-        silent: true
-
-  _download_buildpack:
-    deps: [ _empty_download_folder ]
-    cmds:
-      - task: "{{.DOWNLOAD_TASK}}"
-        silent: true
-
-  _download_from_git:
-    cmds:
-      - cmd: >-
-          docker run -v {{.ABSOLUTE_PROJECT_ROOT}}/{{.BUILDPACK_TMP_FOLDER}}:/downloads buildpack-deps
+          if [ {{.TEST_MODE}} -eq 1 ] && [ "{{.DCKRZ_VERSION}}" == "" ];
+          then
+          cp -R {{.PROJECT_PATH_ABSOLUTE}}/../../taskfiles {{.PROJECT_PATH_ABSOLUTE}}/{{.DIRECTORY_DCKRZ_TMP}}/;
+          cp -R {{.PROJECT_PATH_ABSOLUTE}}/../../bash {{.PROJECT_PATH_ABSOLUTE}}/{{.DIRECTORY_DCKRZ_TMP}}/;
+          cp {{.PROJECT_PATH_ABSOLUTE}}/../../Taskfile.yml {{.PROJECT_PATH_ABSOLUTE}}/{{.DIRECTORY_DCKRZ_TMP}}/Taskfile.yml;
+          else
+          docker run -v {{.PROJECT_PATH_ABSOLUTE}}/{{.DIRECTORY_DCKRZ_TMP}}:/downloads buildpack-deps
           bash -c "
-          git clone -b {{.BUILDPACK_VERSION}} --depth 1 {{.BUILDPACK_REPOSITORY}} /downloads &> /dev/null &&
-          cd /downloads &&
-          git log -1 --pretty=format:%H > REVISION &&
-          cd .. &&
+          git clone -b {{.DCKRZ_VERSION}} --depth 1 {{.GIT_REPOSITORY}} /downloads &> /dev/null &&
           rm -r /downloads/.git &&
           chmod -R 777 /downloads
-          "
+          ";
+          fi;
         silent: true
 
-  _empty_download_folder:
+  _init:update_gitignore:
     cmds:
       - cmd: >-
-          rm -rf {{.BUILDPACK_TMP_FOLDER}};
-          mkdir -p {{.BUILDPACK_TMP_FOLDER}}
-        silent: true
-
-  _has_name_parameter:
-    cmds:
-      - cmd: >-
-          if [ "$name" == "" ]; then
-            echo 'missing Parameter name! Usage: name="my-task" task add';
-            exit 1;
+          if [ ! -f .gitignore ]; then
+            echo "/{{.DIRECTORY_DCKRZ_TMP}}"/ > .gitignore;
+          fi;
+          if [ "$(grep "/{{.DIRECTORY_DCKRZ_TMP}}/" .gitignore | wc -l)" = "0" ]; then
+            echo "/{{.DIRECTORY_DCKRZ_TMP}}/" >> .gitignore;
           fi
         silent: true
 
   _print_version:
     cmds:
       - cmd: >-
-          echo Buildpack Version: {{.BUILDPACK_VERSION}};
+          echo DCKRZE Version: {{.DCKRZ_VERSION}};
         silent: true
 
-  _run:
-    deps: [ _check_init_needed ]
-    cmds:
-      - task: _start_watch_run
-      - task: _print_version
-      - task: _build_task_container
-      - task: _run_task
-      - task: _stop_watch_run
-
-  _run_task:
+  _script:run:
     cmds:
       - cmd: >-
+          ls {{.DIRECTORY_DCKRZ_TMP}}/;
+          if [ "{{.DOCKERFILE_PATH}}" != "" ]; then
+            docker build -t {{.CONTAINER_NAME}} -f "{{.DOCKERFILE_PATH}}" $(dirname "{{.DOCKERFILE_PATH}}");
+          fi;
           if [ -f "/.dockerenv" ]; then
-            bash {{.TASK_DIR_IN_CONTAINER}}/{{.TASK_SCRIPT_PATH}};
+            bash {{.PATH_IN_CONTAINER}}/{{.FILE_SCRIPT}};
           else
-            docker run {{.TASK_CONTAINER_MOUNT_PARAMETERS}} -w {{.TASK_DIR_IN_CONTAINER}} {{.TASK_CONTAINER_NAME}} bash {{.TASK_SCRIPT_PATH}};
+            docker run {{.CONTAINER_MOUNT_PARAMETERS}} -w {{.PATH_IN_CONTAINER}} {{.CONTAINER_NAME}} bash {{.FILE_SCRIPT}};
+          fi;
+        silent: true
+    vars:
+      FILE_CONFIG: "{{.DIRECTORY_CONFIG}}/tasks.env"
+      FILE_SCRIPT: "{{.DIRECTORY_SCRIPTS}}/{{.TASK_NAME}}.sh"
+      DEFAULT_CONTAINER: "buildpack-deps"
+      PATH_IN_CONTAINER: "/container-{{.TASK_NAME}}"
+      CONTAINER_MOUNT_PARAMETERS: "-v {{.PROJECT_PATH_ABSOLUTE}}:{{.PATH_IN_CONTAINER}}"
+      CONTAINER_NAME:
+        sh: >-
+          CONFIG_FILE=.dckrz/config/tasks.env
+          RETURN_CONTAINER_NAME=buildpack-deps;
+          if [ "$(grep -e "^{{.TASK_NAME}}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
+            RETURN_CONTAINER_NAME="$(grep -e "^{{.TASK_NAME}}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
+          fi;
+          if [ "$(grep -e "^{{.TASK_NAME}}_dockerfile=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
+            RETURN_CONTAINER_NAME="dckrz-{{.PROJECT_FOLDER_NAME}}-{{.TASK_NAME}}";
+          fi;
+          echo $RETURN_CONTAINER_NAME;
+      DOCKERFILE_PATH:
+        sh: >-
+          echo "$(grep -e "^{{.TASK_NAME}}_dockerfile=" .dckrz/config/tasks.env 2>/dev/null | grep -o -e '[^=]*$')";
+
+  _script:start_watch:
+    cmds:
+      - cmd: >-
+          echo $(date +%s) > {{.DIRECTORY_DCKRZ_TMP}}/start-watch-{{.TASK_NAME}}
+        silent: true
+
+  _script:stop_watch:
+    cmds:
+      - cmd: >-
+          echo -e "\nDuration: $(( $(date +%s) - $( cat {{.DIRECTORY_DCKRZ_TMP}}/start-watch-{{.TASK_NAME}} ) ))s" &&
+          rm {{.DIRECTORY_DCKRZ_TMP}}/start-watch-{{.TASK_NAME}}
+        silent: true
+
+  _test:clear:
+    cmds:
+      - task: _util:empty_directory
+        vars: {DIR: "{{.PROJECT_PATH_ABSOLUTE}}/tests/debug"}
+      - task: _util:empty_directory
+        vars: {DIR: "{{.PROJECT_PATH_ABSOLUTE}}/tests/tmp"}
+
+  _test:download_bats:
+    cmds:
+      - cmd: >-
+          if [ ! -d "{{.PROJECT_PATH_ABSOLUTE}}/tests/bats" ]; then
+          docker run -v "{{.PROJECT_PATH_ABSOLUTE}}/tests/bats:/bats" buildpack-deps
+          bash -c "
+          git clone --depth 1 https://github.com/sstephenson/bats.git /bats &> /dev/null &&
+          rm -r /bats/.git &&
+          chmod -R 777 /bats
+          ";
           fi;
         silent: true
 
-  _set_github_status:
+  _test:run:
+    dir: tests/tmp
     cmds:
       - cmd: >-
-          if [ "$VERSION" != "" ] && [ "$GITHUB_STATUS_TOKEN" != "" ]; then
-            NUMBER_OF_TESTS=$(head -1 {{.TESTS_OUTPUT_FILE}} | cut -c 4-);
-            NUMBER_OF_FAILED_TESTS=$(cat {{.TESTS_OUTPUT_FILE}} | grep -e '^not ok .*$' | wc -l);
-            STATE=failure;
-            if [ "$NUMBER_OF_FAILED_TESTS" == "0" ]; then
-              STATE=success;
-            fi;
-            if [ "$TEST_SYSTEM" == "" ]; then
-              TEST_SYSTEM=$(cat /etc/os-release | grep PRETTY_NAME | grep -o -e '[^=]*$' | tr '"' ' ');
-            fi;
-            if [ "$TEST_SYSTEM" == "" ]; then
-              echo "Can not determine test system. Please provide it (e.g. Windows10, Debian, ...) via TEST_SYSTEM parameter"
-              exit 1;
-            fi;
-            JSON_DATA="{\"context\": \"$TEST_SYSTEM\",\"state\": \"$STATE\",\"description\": \"$NUMBER_OF_TESTS test(s) run, $NUMBER_OF_FAILED_TESTS test(s) failed\"}";
-            API_ENDPOINT=https://api.github.com/repos/itsmethemojo/buildpack/statuses/$(cat {{.BUILDPACK_TMP_FOLDER}}/REVISION);
-            echo "updating status on github";
-            curl -H "Authorization: token $GITHUB_STATUS_TOKEN" --data "$JSON_DATA" -X POST $API_ENDPOINT &> /dev/null
-          fi;
+          TASK_BINARY="{{.TASK_BINARY}}" {{.PROJECT_PATH_ABSOLUTE}}/tests/bats/bin/bats {{.PROJECT_PATH_ABSOLUTE}}/tests/tests.bats;
         silent: true
 
-  _start_watch_run:
+#TODO when local testing there is no version to print here, maybe retrieve from existing file?
+  _update:taskfile:
     cmds:
       - cmd: >-
-          echo $(date +%s) > {{.BUILDPACK_TMP_FOLDER}}/start-watch-$name
+          echo -e "#DCKRZ_VERSION: {{.DCKRZ_VERSION}}\n" > Taskfile.yml &&
+          cat {{.DIRECTORY_DCKRZ_TMP}}/Taskfile.yml >> Taskfile.yml;
+          for SCRIPT_FILE in $(ls -1 {{.DIRECTORY_SCRIPTS}} 2>/dev/null | sed -e 's/\..*$//'); do
+          cat {{.FILE_TARGET_TEMPLATE}} | sed "s/__TASKNAME__/$SCRIPT_FILE/g" >> Taskfile.yml;
+          done;
         silent: true
 
-  _stop_watch_run:
+  _util:empty_directory:
     cmds:
       - cmd: >-
-          echo -e "\nDuration: $(( $(date +%s) - $( cat {{.BUILDPACK_TMP_FOLDER}}/start-watch-$name ) ))s" &&
-          rm {{.BUILDPACK_TMP_FOLDER}}/start-watch-$name
+          rm -rf {{.DIR}} || true;
+          mkdir -p {{.DIR}}
         silent: true
-
-  _update_gitignore:
-    cmds:
-      - cmd: >-
-          if [ ! -f .gitignore ]; then
-            echo "/{{.BUILDPACK_TMP_FOLDER}}"/ > .gitignore;
-          fi;
-          if [ "$(grep "/{{.BUILDPACK_TMP_FOLDER}}/" .gitignore | wc -l)" = "0" ]; then
-            echo "/{{.BUILDPACK_TMP_FOLDER}}/" >> .gitignore;
-          fi
-        silent: true
-
-  _update_taskfile:
-    cmds:
-      - task: _copy_taskfile_from_download
-      - task: _add_targets_for_available_tasks_to_taskfile
-      - task: _print_version

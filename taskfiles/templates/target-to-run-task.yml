@@ -1,6 +1,13 @@
 
   __TASKNAME__:
     desc: task __TASKNAME__
+    deps: [ _init:check_if_init_needed ]
     cmds:
-      - cmd: name="__TASKNAME__" task _run
-        silent: true
+      - task: _script:start_watch
+        vars: {TASK_NAME: "__TASKNAME__"}
+      - task: _print_version
+        vars: {TASK_NAME: "__TASKNAME__"}
+      - task: _script:run
+        vars: {TASK_NAME: "__TASKNAME__"}
+      - task: _script:stop_watch
+        vars: {TASK_NAME: "__TASKNAME__"}
