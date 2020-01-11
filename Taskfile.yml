@@ -1,14 +1,9 @@
 # use task name grouping
-# improve when to clone when to copy stuff
 # remove any expensive container usage from vars initialization
 # move run.sh into taskfile
 # use buildpack:: grouping for public targets
 # determine latest version when needed in init task
-
 # group directory_vars in DIRECTORY_
-
-# task name switch entfernen
-# auf testmodus prüfen und kopieren und dann exit 0, dann version bestimmen wenn die noch nicht da ist, danach den clone machen
 
 
 
@@ -40,7 +35,7 @@ vars:
         BUILDPACK_VERSION="$(grep -e "^#BUILDPACK_VERSION:" Taskfile.yml 2>/dev/null | grep -o -e '[^:]*$')";
       fi;
       if [ "$BUILDPACK_VERSION" == "" ] && [ ! -f "../tests.bats" ]; then
-        BUILDPACK_VERSION=$(git ls-remote -t git@github.com:itsmethemojo/buildpack.git | awk '{print $2}' | cut -d '/' -f 3 | cut -d '^' -f 1 | tail -1);
+        BUILDPACK_VERSION=$(docker run buildpack-deps:curl bash -c 'curl -s https://api.github.com/repos/itsmethemojo/buildpack/tags | grep "\"name\":" | head -1 | cut -d":" -f2 | cut -d"\"" -f2');
       fi;
       echo $BUILDPACK_VERSION;
   ABSOLUTE_PROJECT_ROOT:
@@ -219,10 +214,8 @@ tasks:
     cmds:
       - cmd: >-
           echo -e "#BUILDPACK_VERSION: {{.BUILDPACK_VERSION}}\n" > Taskfile.yml &&
-          cat {{.BUILDPACK_TMP_FOLDER}}/Taskfile.yml >> Taskfile.yml
-        silent: false
-      - cmd: >-
+          cat {{.BUILDPACK_TMP_FOLDER}}/Taskfile.yml >> Taskfile.yml;
           for SCRIPT_FILE in $(ls -1 {{.SCRIPTS_FOLDER}} 2>/dev/null | sed -e 's/\..*$//'); do
           cat {{.TASK_TARGET_TEMPLATE}} | sed "s/__TASKNAME__/$SCRIPT_FILE/g" >> Taskfile.yml;
-          done
+          done;
         silent: false
