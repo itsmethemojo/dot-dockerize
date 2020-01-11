@@ -1,0 +1,21 @@
+name: test-on-ubuntu
+
+on:
+  pull_request_review_comment:
+    types: [created, deleted]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: download task
+      run: |
+        ls -la /usr/local/bin
+        wget https://taskfile.dev/install.sh
+        chmod +x install.sh
+        ./install.sh -b $(pwd)
+        ls -la task
+        ls -la /usr/local/bin
