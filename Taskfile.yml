@@ -49,9 +49,9 @@ tasks:
 
   dckrz:add:
     desc: NAME=foo_bar task dckrz:add                            adds a new task that can be later used with task foo_bar
-    deps: [ _check_init_needed ]
+    deps: [ _init:check_if_init_needed ]
     cmds:
-      - task: _create_task_script
+      - task: _add:create_task_script
       - task: _update:taskfile
       - task: _print_version
 
@@ -72,7 +72,7 @@ tasks:
         silent: true
 
   dckrz:upgrade:
-    deps: [ _check_init_needed ]
+    deps: [ _init:check_if_init_needed ]
     desc: task dckrz:upgrade                                     will upgrade your .dckrz version to the most current available
     cmds:
       - cmd: >-
@@ -86,13 +86,26 @@ tasks:
 
   dckrz:version:
     desc: task dckrz:version                                     prints the current used version of task
-    deps: [ _check_init_needed ]
+    deps: [ _init:check_if_init_needed ]
     cmds:
       - task: _print_version
 
   # private targets
 
-  _check_init_needed:
+  _add:create_task_script:
+    cmds:
+      - cmd: >-
+          if [ "$NAME" == "" ]; then
+            echo 'missing Parameter name! Usage: NAME="foo_bar" task dckrz:add';
+            exit 1;
+          fi;
+          mkdir -p {{.DIRECTORY_SCRIPTS}};
+          touch {{.DIRECTORY_SCRIPTS}}/$NAME.sh;
+          chmod +x {{.DIRECTORY_SCRIPTS}}/$NAME.sh;
+          cat {{.FILE_BASH_SCRIPT_TEMPLATE}} > {{.DIRECTORY_SCRIPTS}}/$NAME.sh
+        silent: false
+
+  _init:check_if_init_needed:
     cmds:
       - cmd: >-
           if [ ! -f "{{.FILE_BASH_SCRIPT_TEMPLATE}}" ]; then
@@ -107,19 +120,6 @@ tasks:
           mkdir -p {{.DIRECTORY_CONFIG}}/docker;
           touch {{.DIRECTORY_CONFIG}}/tasks.env
         silent: true
-
-  _create_task_script:
-    cmds:
-      - cmd: >-
-          if [ "$NAME" == "" ]; then
-            echo 'missing Parameter name! Usage: NAME="foo_bar" task dckrz:add';
-            exit 1;
-          fi;
-          mkdir -p {{.DIRECTORY_SCRIPTS}};
-          touch {{.DIRECTORY_SCRIPTS}}/$NAME.sh;
-          chmod +x {{.DIRECTORY_SCRIPTS}}/$NAME.sh;
-          cat {{.FILE_BASH_SCRIPT_TEMPLATE}} > {{.DIRECTORY_SCRIPTS}}/$NAME.sh
-        silent: false
 
   _init:download:
     cmds:
@@ -139,6 +139,17 @@ tasks:
           chmod -R 777 /downloads
           ";
           fi;
+        silent: true
+
+  _init:update_gitignore:
+    cmds:
+      - cmd: >-
+          if [ ! -f .gitignore ]; then
+            echo "/{{.DIRECTORY_DCKRZ_TMP}}"/ > .gitignore;
+          fi;
+          if [ "$(grep "/{{.DIRECTORY_DCKRZ_TMP}}/" .gitignore | wc -l)" = "0" ]; then
+            echo "/{{.DIRECTORY_DCKRZ_TMP}}/" >> .gitignore;
+          fi
         silent: true
 
   _print_version:
@@ -192,17 +203,6 @@ tasks:
       - cmd: >-
           echo -e "\nDuration: $(( $(date +%s) - $( cat {{.DIRECTORY_DCKRZ_TMP}}/start-watch-{{.TASK_NAME}} ) ))s" &&
           rm {{.DIRECTORY_DCKRZ_TMP}}/start-watch-{{.TASK_NAME}}
-        silent: true
-
-  _init:update_gitignore:
-    cmds:
-      - cmd: >-
-          if [ ! -f .gitignore ]; then
-            echo "/{{.DIRECTORY_DCKRZ_TMP}}"/ > .gitignore;
-          fi;
-          if [ "$(grep "/{{.DIRECTORY_DCKRZ_TMP}}/" .gitignore | wc -l)" = "0" ]; then
-            echo "/{{.DIRECTORY_DCKRZ_TMP}}/" >> .gitignore;
-          fi
         silent: true
 
   _update:taskfile:
