@@ -6,6 +6,7 @@ function setup {
   cp ../../Taskfile.yml .
   # if exists copy config data for the current test case
   cp -r ../data/$BATS_TEST_NUMBER/* . 2>/dev/null || :
+  cp -r ../data/$BATS_TEST_NUMBER/.* . 2>/dev/null || :
 }
 
 function teardown {
@@ -17,24 +18,24 @@ function teardown {
 @test "task add without previous task init fails and throws missing install error" {
   run task add
   [ "$status" -eq 1 ]
-  [ "$(echo $output | grep 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'Important files missing. DCKRZE seems not be installed. Run "task init" to fix that.' | wc -l)" = "1" ]
 }
 
 #2
 @test "task version without previous task init fails and throws missing install error" {
   run task version
   [ "$status" -eq 1 ]
-  [ "$(echo $output | grep 'Important files missing. Buildpack seems not be installed. Run "task init" to fix that.' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'Important files missing. DCKRZE seems not be installed. Run "task init" to fix that.' | wc -l)" = "1" ]
 }
 
 #3
 @test "task init succeeds. version is printed, folder structure is created" {
   run task init
   [ "$status" -eq 0 ]
-  [ "$(echo $output | grep 'Buildpack Version:' | wc -l)" = "1" ]
-  [ "$(ls -1 buildpack/ | tr '\n' _)" = "config_tmp_" ]
-  [ "$(ls -1 buildpack/config/ | tr '\n' _)" = "docker_tasks.env_" ]
-  [ "$(cat .gitignore)" = "/buildpack/tmp/" ]
+  [ "$(echo $output | grep 'DCKRZE Version:' | wc -l)" = "1" ]
+  [ "$(ls -1 .dckrz/ | tr '\n' _)" = "config_tmp_" ]
+  [ "$(ls -1 .dckrz/config/ | tr '\n' _)" = "docker_tasks.env_" ]
+  [ "$(cat .gitignore)" = "/.dckrz/tmp/" ]
 }
 
 #4
@@ -55,21 +56,21 @@ function teardown {
     run echo "$(VERSION=$VERSION task init && name=first_task task add && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   # since bats can't handle parameters before the runner, this adds the response code to the output to be checked
-  [ "$(ls -1 buildpack/scripts | tr '\n' _)" = "first_task.sh_" ]
+  [ "$(ls -1 .dckrz/scripts | tr '\n' _)" = "first_task.sh_" ]
 }
 
 #7
 @test "reinstall with task init succeeds, .gitignore content as expected after reinstall" {
     run task init init
   [ "$status" -eq 0 ]
-  [ "$(cat .gitignore)" = "/buildpack/tmp/" ]
+  [ "$(cat .gitignore)" = "/.dckrz/tmp/" ]
 }
 
 #8
 @test "running task first_task succeeds. version and duration is printed" {
     run echo "$(VERSION=$VERSION task init && name=first_task task add && task first_task && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
-  [ "$(echo $output | grep 'Buildpack Version:' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'DCKRZE Version:' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'Duration:' | wc -l)" = "1" ]
   [ "$(echo $output | grep ok | wc -l)" = "1" ]
 }
@@ -92,8 +93,8 @@ function teardown {
 @test "VERSION=0.5 task init succeeds. printed Version is 0.5. version is also in Taskfile.yml" {
     run echo "$(VERSION=0.5 task init && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
-  [ "$(echo $output | grep 'Buildpack Version: 0.5' | wc -l)" = "1" ]
-  [ "$(cat Taskfile.yml | grep '#BUILDPACK_VERSION: 0.5' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'DCKRZE Version: 0.5' | wc -l)" = "1" ]
+  [ "$(cat Taskfile.yml | grep '#DCKRZ_VERSION: 0.5' | wc -l)" = "1" ]
 }
 
 #12
@@ -105,9 +106,9 @@ function teardown {
 
 #13
 @test "task init will clear tmp folder" {
-    run echo "$(VERSION=$VERSION task init && touch buildpack/tmp/FILE && VERSION=$VERSION task init && echo FINAL_EXIT_CODE=$?)"
+    run echo "$(VERSION=$VERSION task init && touch .dckrz/tmp/FILE && VERSION=$VERSION task init && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
-  [ "$(ls -1 buildpack/tmp/FILE | tr '\n' _)" != "buildpack/tmp/FILE_" ]
+  [ "$(ls -1 .dckrz/tmp/FILE | tr '\n' _)" != ".dckrz/tmp/FILE_" ]
 }
 
 #14
