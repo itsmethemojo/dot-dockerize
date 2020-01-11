@@ -38,7 +38,7 @@ vars:
 tasks:
 
   dckrz:add:
-    desc: NAME=foo_bar task dckrz:add                            adds a new task that can be later used with task foo_bar
+    desc: "adds a new task that can be later used with task foo_bar\n                NAME=foo_bar task dckrz:add\n"
     deps: [ _init:check_if_init_needed ]
     cmds:
       - task: _add:create_task_script
@@ -46,7 +46,7 @@ tasks:
       - task: _print_version
 
   dckrz:init:
-    desc: '[VERSION=version] task dckrz:init                      setup initial config and downloads needed dependencies, optional parameter to select a specific version'
+    desc: "setup initial config and downloads needed dependencies, optional parameter to select a specific version\n                [VERSION=version] task dckrz:init\n"
     cmds:
       - task: _init:download
       - task: _init:create_config_files
@@ -55,7 +55,7 @@ tasks:
       - task: _print_version
 
   dckrz:test:
-    desc: 'task dckrz:test                                        runs tests for .dckrz framework'
+    desc: "runs tests for .dckrz framework\n"
     cmds:
       - task: _test:clear
       - task: _test:download_bats
@@ -63,7 +63,7 @@ tasks:
 
   dckrz:upgrade:
     deps: [ _init:check_if_init_needed ]
-    desc: task dckrz:upgrade                                     will upgrade your .dckrz version to the most current available
+    desc: "will upgrade your .dckrz framework to the most current version available\n"
     cmds:
       - cmd: >-
           NEWEST_VERSION=$(docker run buildpack-deps:curl bash -c 'curl -s {{.API_TAGS}} | grep "\"name\":" | head -1 | cut -d":" -f2 | cut -d"\"" -f2');
@@ -75,7 +75,7 @@ tasks:
         silent: true
 
   dckrz:version:
-    desc: task dckrz:version                                     prints the current used version of task
+    desc: "prints the current used version of .dckrz\n"
     deps: [ _init:check_if_init_needed ]
     cmds:
       - task: _print_version
@@ -93,7 +93,7 @@ tasks:
           touch {{.DIRECTORY_SCRIPTS}}/$NAME.sh;
           chmod +x {{.DIRECTORY_SCRIPTS}}/$NAME.sh;
           cat {{.FILE_BASH_SCRIPT_TEMPLATE}} > {{.DIRECTORY_SCRIPTS}}/$NAME.sh
-        silent: false
+        silent: true
 
   _init:check_if_init_needed:
     cmds:
@@ -111,6 +111,7 @@ tasks:
           touch {{.DIRECTORY_CONFIG}}/tasks.env
         silent: true
 
+#TODO when local testing write version already in file?
   _init:download:
     cmds:
       - task: _util:empty_directory
@@ -222,6 +223,7 @@ tasks:
           {{.PROJECT_PATH_ABSOLUTE}}/tests/bats/bin/bats {{.PROJECT_PATH_ABSOLUTE}}/tests/tests.bats | tee "{{.PROJECT_PATH_ABSOLUTE}}/{{.FILE_TESTS_OUTPUT}}";
         silent: true
 
+#TODO when local testing there is no version to print here, maybe retrieve from existing file?
   _update:taskfile:
     cmds:
       - cmd: >-
@@ -237,4 +239,4 @@ tasks:
       - cmd: >-
           rm -rf {{.DIR}} || true;
           mkdir -p {{.DIR}}
-        silent: false
+        silent: true
