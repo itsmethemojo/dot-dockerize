@@ -3,6 +3,9 @@ name: test-on-ubuntu
 on:
   pull_request_review_comment:
     types: [created, deleted]
+  push:
+    branches:
+      - master
 
 jobs:
   test:
@@ -23,16 +26,7 @@ jobs:
     - name: run tests
       run: |
         TASK_BINARY=$(pwd)/task $(pwd)/task dz:test
-    - name: print debug output if tests fail
-      if: failure()
-      run: |
-        for FILE in $(ls tests/debug);
-        do
-        echo -e "$FILE\n\n"
-        cat tests/debug/$FILE
-        echo "------------"
-        done
-    - name: print debug output if tests succeed
+    - name: print debug output
       if: failure()
       run: |
         for FILE in $(ls tests/debug);
