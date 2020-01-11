@@ -151,7 +151,7 @@ tasks:
   _print_version:
     cmds:
       - cmd: >-
-          echo DCKRZE Version: {{.DCKRZ_VERSION}};
+          echo .dckrz Version: {{.DCKRZ_VERSION}};
         silent: true
 
   _script:run:

@@ -32,7 +32,7 @@ function teardown {
 @test "task dz:init succeeds. version is printed, folder structure is created" {
   run $TASK_BINARY dz:init
   [ "$status" -eq 0 ]
-  [ "$(echo $output | grep 'DCKRZE Version:' | wc -l)" = "1" ]
+  [ "$(echo $output | grep '.dckrz Version:' | wc -l)" = "1" ]
   [ "$(ls -1 .dckrz/ | tr '\n' _)" = "config_tmp_" ]
   [ "$(ls -1 .dckrz/config/ | tr '\n' _)" = "docker_tasks.env_" ]
   [ "$(cat .gitignore)" = "/.dckrz/tmp/" ]
@@ -70,7 +70,7 @@ function teardown {
 @test "running task first_task succeeds. version and duration is printed" {
   run echo "$($TASK_BINARY dz:init && NAME=first_task $TASK_BINARY dz:add && $TASK_BINARY first_task && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
-  [ "$(echo $output | grep 'DCKRZE Version:' | wc -l)" = "1" ]
+  [ "$(echo $output | grep '.dckrz Version:' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'Duration:' | wc -l)" = "1" ]
   [ "$(echo $output | grep ok | wc -l)" = "1" ]
 }
@@ -93,7 +93,7 @@ function teardown {
 @test "VERSION=0.5 task dz:init succeeds. printed Version is 0.5. version is also in Taskfile.yml" {
   run echo "$(VERSION=0.5 $TASK_BINARY dz:init && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
-  [ "$(echo $output | grep 'DCKRZE Version: 0.5' | wc -l)" = "1" ]
+  [ "$(echo $output | grep '.dckrz Version: 0.5' | wc -l)" = "1" ]
   [ "$(cat Taskfile.yml | grep '#DCKRZ_VERSION: 0.5' | wc -l)" = "1" ]
 }
 
