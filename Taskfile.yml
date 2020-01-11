@@ -37,16 +37,16 @@ vars:
 
 tasks:
 
-  dckrz:add:
-    desc: "adds a new task that can be later used with task foo_bar\n                NAME=foo_bar task dckrz:add\n"
+  dz:add:
+    desc: "adds a new task that can be later used with task foo_bar\n                NAME=foo_bar task dz:add\n"
     deps: [ _init:check_if_init_needed ]
     cmds:
       - task: _add:create_task_script
       - task: _update:taskfile
       - task: _print_version
 
-  dckrz:init:
-    desc: "setup initial config and downloads needed dependencies, optional parameter to select a specific version\n                [VERSION=version] task dckrz:init\n"
+  dz:init:
+    desc: "setup initial config and downloads needed dependencies, optional parameter to select a specific version\n                [VERSION=version] task dz:init\n"
     cmds:
       - task: _init:download
       - task: _init:create_config_files
@@ -54,14 +54,14 @@ tasks:
       - task: _update:taskfile
       - task: _print_version
 
-  dckrz:test:
+  dz:test:
     desc: "runs tests for .dckrz framework\n"
     cmds:
       - task: _test:clear
       - task: _test:download_bats
       - task: _test:run
 
-  dckrz:upgrade:
+  dz:upgrade:
     deps: [ _init:check_if_init_needed ]
     desc: "will upgrade your .dckrz framework to the most current version available\n"
     cmds:
@@ -70,11 +70,11 @@ tasks:
           if [ "$NEWEST_VERSION" == "{{.DCKRZ_VERSION}}" ]; then
             echo 'DCKRZE is already on the newest version';
           else
-            VERSION=$NEWEST_VERSION task dckrz:init
+            VERSION=$NEWEST_VERSION task dz:init
           fi
         silent: true
 
-  dckrz:version:
+  dz:version:
     desc: "prints the current used version of .dckrz\n"
     deps: [ _init:check_if_init_needed ]
     cmds:
@@ -86,7 +86,7 @@ tasks:
     cmds:
       - cmd: >-
           if [ "$NAME" == "" ]; then
-            echo 'missing Parameter name! Usage: NAME="foo_bar" task dckrz:add';
+            echo 'missing Parameter name! Usage: NAME="foo_bar" task dz:add';
             exit 1;
           fi;
           mkdir -p {{.DIRECTORY_SCRIPTS}};
@@ -99,7 +99,7 @@ tasks:
     cmds:
       - cmd: >-
           if [ ! -f "{{.FILE_BASH_SCRIPT_TEMPLATE}}" ]; then
-            echo 'Important files missing. DCKRZE seems not be installed. Run "task dckrz:init" to fix that.';
+            echo 'Important files missing. DCKRZE seems not be installed. Run "task dz:init" to fix that.';
             exit 1;
           fi
         silent: true
