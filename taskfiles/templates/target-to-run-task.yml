@@ -4,10 +4,10 @@
     deps: [ _check_init_needed ]
     cmds:
       - task: _script:start_watch
-        vars: {name: "__TASKNAME__"}
+        vars: {TASK_NAME: "__TASKNAME__"}
       - task: _print_version
-        vars: {name: "__TASKNAME__"}
+        vars: {TASK_NAME: "__TASKNAME__"}
       - task: _script:run
-        vars: {name: "__TASKNAME__"}
+        vars: {TASK_NAME: "__TASKNAME__"}
       - task: _script:stop_watch
-        vars: {name: "__TASKNAME__"}
+        vars: {TASK_NAME: "__TASKNAME__"}

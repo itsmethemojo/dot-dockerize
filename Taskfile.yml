@@ -47,23 +47,16 @@ vars:
 
 tasks:
 
-  add:
-    desc: name=new-task-name task add                       adds a new task that can be later used with task new-task-name
+  dckrz:add:
+    desc: NAME=foo_bar task dckrz:add                            adds a new task that can be later used with task foo_bar
     deps: [ _check_init_needed ]
     cmds:
       - task: _create_task_script
       - task: _update:taskfile
       - task: _print_version
 
-  buildpack_test:
-    desc: '[VERSION=version] task buildpack_test             runs tests for builpack framework, optional parameter to select a specific version to test'
-    cmds:
-      - cmd: ./tests/run.sh | tee {{.TESTS_OUTPUT_FILE}};
-        ignore_error: true
-        silent: true
-
-  init:
-    desc: '[VERSION=version] task init                       setup initial config and downloads needed dependencies, optional parameter to select a specific version'
+  dckrz:init:
+    desc: '[VERSION=version] task dckrz:init                      setup initial config and downloads needed dependencies, optional parameter to select a specific version'
     cmds:
       - task: _init:download
       - task: _init:create_config_files
@@ -71,21 +64,28 @@ tasks:
       - task: _update:taskfile
       - task: _print_version
 
-  upgrade:
+  dckrz:test:
+    desc: 'task dckrz:test                                        runs tests for .dckrz framework'
+    cmds:
+      - cmd: ./tests/run.sh | tee {{.TESTS_OUTPUT_FILE}};
+        ignore_error: true
+        silent: true
+
+  dckrz:upgrade:
     deps: [ _check_init_needed ]
-    desc: task upgrade                                      will upgrade your DCKRZE version to the most current available
+    desc: task dckrz:upgrade                                     will upgrade your .dckrz version to the most current available
     cmds:
       - cmd: >-
           NEWEST_VERSION=$(docker run buildpack-deps:curl bash -c 'curl -s {{.API_TAGS}} | grep "\"name\":" | head -1 | cut -d":" -f2 | cut -d"\"" -f2');
           if [ "$NEWEST_VERSION" == "{{.DCKRZ_VERSION}}" ]; then
             echo 'DCKRZE is already on the newest version';
           else
-            VERSION=$NEWEST_VERSION task init
+            VERSION=$NEWEST_VERSION task dckrz:init
           fi
         silent: true
 
-  version:
-    desc: task version                                     prints the current used version of task
+  dckrz:version:
+    desc: task dckrz:version                                     prints the current used version of task
     deps: [ _check_init_needed ]
     cmds:
       - task: _print_version
@@ -96,7 +96,7 @@ tasks:
     cmds:
       - cmd: >-
           if [ ! -f "{{.FILE_BASH_SCRIPT_TEMPLATE}}" ]; then
-            echo 'Important files missing. DCKRZE seems not be installed. Run "task init" to fix that.';
+            echo 'Important files missing. DCKRZE seems not be installed. Run "task dckrz:init" to fix that.';
             exit 1;
           fi
         silent: true
@@ -111,15 +111,15 @@ tasks:
   _create_task_script:
     cmds:
       - cmd: >-
-          if [ "$name" == "" ]; then
-            echo 'missing Parameter name! Usage: name="my-task" task add';
+          if [ "$NAME" == "" ]; then
+            echo 'missing Parameter name! Usage: NAME="foo_bar" task dckrz:add';
             exit 1;
           fi;
           mkdir -p {{.DIRECTORY_SCRIPTS}};
-          touch {{.DIRECTORY_SCRIPTS}}/{{.name}}.sh;
-          chmod +x {{.DIRECTORY_SCRIPTS}}/{{.name}}.sh;
-          cat {{.FILE_BASH_SCRIPT_TEMPLATE}} >> {{.DIRECTORY_SCRIPTS}}/{{.name}}.sh
-        silent: true
+          touch {{.DIRECTORY_SCRIPTS}}/$NAME.sh;
+          chmod +x {{.DIRECTORY_SCRIPTS}}/$NAME.sh;
+          cat {{.FILE_BASH_SCRIPT_TEMPLATE}} > {{.DIRECTORY_SCRIPTS}}/$NAME.sh
+        silent: false
 
   _init:download:
     cmds:
@@ -162,36 +162,36 @@ tasks:
         silent: true
     vars:
       FILE_CONFIG: "{{.DIRECTORY_CONFIG}}/tasks.env"
-      FILE_SCRIPT: "{{.DIRECTORY_SCRIPTS}}/{{.name}}.sh"
+      FILE_SCRIPT: "{{.DIRECTORY_SCRIPTS}}/{{.TASK_NAME}}.sh"
       DEFAULT_CONTAINER: "buildpack-deps"
-      PATH_IN_CONTAINER: "/container-{{.name}}"
+      PATH_IN_CONTAINER: "/container-{{.TASK_NAME}}"
       CONTAINER_MOUNT_PARAMETERS: "-v $(pwd):{{.PATH_IN_CONTAINER}}"
       CONTAINER_NAME:
         sh: >-
           CONFIG_FILE=.dckrz/config/tasks.env
           RETURN_CONTAINER_NAME=buildpack-deps;
-          if [ "$(grep -e "^{{.name}}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-            RETURN_CONTAINER_NAME="$(grep -e "^{{.name}}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
+          if [ "$(grep -e "^{{.TASK_NAME}}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
+            RETURN_CONTAINER_NAME="$(grep -e "^{{.TASK_NAME}}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
           fi;
-          if [ "$(grep -e "^{{.name}}_dockerfile=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-            RETURN_CONTAINER_NAME="dckrz-{{.PROJECT_FOLDER_NAME}}-{{.name}}";
+          if [ "$(grep -e "^{{.TASK_NAME}}_dockerfile=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
+            RETURN_CONTAINER_NAME="dckrz-{{.PROJECT_FOLDER_NAME}}-{{.TASK_NAME}}";
           fi;
           echo $RETURN_CONTAINER_NAME;
       DOCKERFILE_PATH:
         sh: >-
-          echo "$(grep -e "^{{.name}}_dockerfile=" .dckrz/config/tasks.env 2>/dev/null | grep -o -e '[^=]*$')";
+          echo "$(grep -e "^{{.TASK_NAME}}_dockerfile=" .dckrz/config/tasks.env 2>/dev/null | grep -o -e '[^=]*$')";
 
   _script:start_watch:
     cmds:
       - cmd: >-
-          echo $(date +%s) > {{.DIRECTORY_DCKRZ_TMP}}/start-watch-{{.name}}
+          echo $(date +%s) > {{.DIRECTORY_DCKRZ_TMP}}/start-watch-{{.TASK_NAME}}
         silent: true
 
   _script:stop_watch:
     cmds:
       - cmd: >-
-          echo -e "\nDuration: $(( $(date +%s) - $( cat {{.DIRECTORY_DCKRZ_TMP}}/start-watch-{{.name}} ) ))s" &&
-          rm {{.DIRECTORY_DCKRZ_TMP}}/start-watch-{{.name}}
+          echo -e "\nDuration: $(( $(date +%s) - $( cat {{.DIRECTORY_DCKRZ_TMP}}/start-watch-{{.TASK_NAME}} ) ))s" &&
+          rm {{.DIRECTORY_DCKRZ_TMP}}/start-watch-{{.TASK_NAME}}
         silent: true
 
   _init:update_gitignore:
