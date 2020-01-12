@@ -3,7 +3,7 @@ version: '2'
 expansions: 5
 
 vars:
-  API_TAGS: 'https://api.github.com/repos/itsmethemojo/buildpack/tags'
+  API_TAGS: 'https://api.github.com/repos/itsmethemojo/dot-dockerize/tags'
   DIRECTORY_DCKRZ: .dckrz
   DIRECTORY_DCKRZ_TMP: "{{.DIRECTORY_DCKRZ}}/tmp"
   DIRECTORY_CONFIG: "{{.DIRECTORY_DCKRZ}}/config"
@@ -15,12 +15,13 @@ vars:
         DCKRZ_VERSION="$(grep -e "^#DCKRZ_VERSION:" Taskfile.yml 2>/dev/null | grep -o -e '[^:]*$')";
       fi;
       if [ "$DCKRZ_VERSION" == "" ] && [ ! -f "../tests.bats" ]; then
-        DCKRZ_VERSION=$(docker run buildpack-deps:curl bash -c 'curl -s https://api.github.com/repos/itsmethemojo/buildpack/tags | grep "\"name\":" | head -1 | cut -d":" -f2 | cut -d"\"" -f2');
+        DCKRZ_VERSION=$(docker run buildpack-deps:curl bash -c 'curl -s https://api.github.com/repos/itsmethemojo/dot-dockerize/tags | grep "\"name\":" | head -1 | cut -d":" -f2 | cut -d"\"" -f2');
       fi;
       echo $DCKRZ_VERSION;
   FILE_BASH_SCRIPT_TEMPLATE: "{{.DIRECTORY_DCKRZ_TMP}}/bash/templates/run-task.sh"
   FILE_TARGET_TEMPLATE: "{{.DIRECTORY_DCKRZ_TMP}}/taskfiles/templates/target-to-run-task.yml"
-  GIT_REPOSITORY: 'https://github.com/itsmethemojo/buildpack.git'
+  FILE_DCKRZ_CONFIG: "{{.DIRECTORY_CONFIG}}/dckrz.conf"
+  GIT_REPOSITORY: 'https://github.com/itsmethemojo/dot-dockerize.git'
   PROJECT_FOLDER_NAME:
     sh: "echo ${PWD##*/}"
   PROJECT_PATH_ABSOLUTE:
@@ -113,7 +114,7 @@ tasks:
     cmds:
       - cmd: >-
           mkdir -p {{.DIRECTORY_CONFIG}}/docker;
-          touch {{.DIRECTORY_CONFIG}}/tasks.env
+          touch {{.FILE_DCKRZ_CONFIG}}
         silent: true
 
 #TODO when local testing write version already in file?
@@ -168,25 +169,24 @@ tasks:
           fi;
         silent: true
     vars:
-      FILE_CONFIG: "{{.DIRECTORY_CONFIG}}/tasks.env"
+      FILE_CONFIG: "{{.FILE_DCKRZ_CONFIG}}"
       FILE_SCRIPT: "{{.DIRECTORY_SCRIPTS}}/{{.TASK_NAME}}.sh"
       DEFAULT_CONTAINER: "buildpack-deps"
       PATH_IN_CONTAINER: "/container-{{.TASK_NAME}}"
       CONTAINER_MOUNT_PARAMETERS: "-v {{.PROJECT_PATH_ABSOLUTE}}:{{.PATH_IN_CONTAINER}}"
       CONTAINER_NAME:
         sh: >-
-          CONFIG_FILE=.dckrz/config/tasks.env
           RETURN_CONTAINER_NAME=buildpack-deps;
-          if [ "$(grep -e "^{{.TASK_NAME}}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-            RETURN_CONTAINER_NAME="$(grep -e "^{{.TASK_NAME}}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
+          if [ "$(grep -e "^{{.TASK_NAME}}_container=" {{.FILE_DCKRZ_CONFIG}} 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
+            RETURN_CONTAINER_NAME="$(grep -e "^{{.TASK_NAME}}_container=" {{.FILE_DCKRZ_CONFIG}} 2>/dev/null | grep -o -e '[^=]*$')";
           fi;
-          if [ "$(grep -e "^{{.TASK_NAME}}_dockerfile=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
+          if [ "$(grep -e "^{{.TASK_NAME}}_dockerfile=" {{.FILE_DCKRZ_CONFIG}} 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
             RETURN_CONTAINER_NAME="dckrz-{{.PROJECT_FOLDER_NAME}}-{{.TASK_NAME}}";
           fi;
           echo $RETURN_CONTAINER_NAME;
       DOCKERFILE_PATH:
         sh: >-
-          echo "$(grep -e "^{{.TASK_NAME}}_dockerfile=" .dckrz/config/tasks.env 2>/dev/null | grep -o -e '[^=]*$')";
+          echo "$(grep -e "^{{.TASK_NAME}}_dockerfile=" {{.FILE_DCKRZ_CONFIG}} 2>/dev/null | grep -o -e '[^=]*$')";
 
   _script:start_watch:
     cmds:

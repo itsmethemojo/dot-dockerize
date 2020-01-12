@@ -34,7 +34,7 @@ function teardown {
   [ "$status" -eq 0 ]
   [ "$(echo $output | grep '.dckrz Version:' | wc -l)" = "1" ]
   [ "$(ls -1 .dckrz/ | tr '\n' _)" = "config_tmp_" ]
-  [ "$(ls -1 .dckrz/config/ | tr '\n' _)" = "docker_tasks.env_" ]
+  [ "$(ls -1 .dckrz/config/ | tr '\n' _)" = "dckrz.conf_docker_" ]
   [ "$(cat .gitignore)" = "/.dckrz/tmp/" ]
 }
 

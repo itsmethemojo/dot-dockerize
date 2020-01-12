@@ -1,80 +1,77 @@
-# buildpack
+# .dckrz (dot dockerize)
 
-## required software
+micro framework to move all your build/test/compile steps in containers
 
-* [go-task](https://taskfile.org/#/installation?id=install-script)
-* docker
+## usecases
 
-## why using buildpack?
+Right at the moment you start writing code in the programming language of your choice this framework can become handy.
 
-### don't install software local
-When working with multiple projects, keeping up with all the required software running locally gets harder and harder. Different projects require different node/ruby/php/whatever versions? Things like this shouldn't eat your time.
+### keep your localhost software list lean
+
+Project 1 requires python version X and project 2 ruby version Y? As all your code will run in containers you don't need to care to install additional software, when trying out new stuff.
 
 ### Infrastructure as Code
-As you define the software dependencies of all your tasks in Dockerfile definitions, you have all your needed software stack well defined for moving to a ci system or production environment later.
 
-### rapid prototyping with new programming languages
-I am language agnostic and love to try new things. Containerize your application from the beginning will help you to get faster results
+While using .dckrz in your project you automatically define Docker images containing all needed dependencies. Those can be easily used to be run in any container based new environment later. Also setting up automatic tests with github actions or travis ci will be as easy as it can get.
 
-## does buildpack run on my system?
-Currently it is fully tested on ubuntu linux, therefore i am pretty sure there will be no trouble to run it on other linux distributions having bash
+### prototyping
 
-I will look into testing it on mac os and windows
+Not having to worry about local software and dependencies will ease your decisions to try new programming languages to solve a problem.
 
+## before you start
 
-## howto use buildpack
+### required software
 
-### 1. download the buildpack Taskfile into your project root
+Since nothing comes for free, this framework does also have dependencies.
+
+* [go-task](https://taskfile.org/#/installation?id=install-script)
+* [docker](https://www.docker.com/get-started)
+
+## get started
+
+### 1. download the .dckrz Taskfile into your project root
 
 ```
-# with wget
-wget https://raw.githubusercontent.com/itsmethemojo/buildpack/master/Taskfile.yml
-
-# or with curl
-curl https://raw.githubusercontent.com/itsmethemojo/buildpack/master/Taskfile.yml --output Taskfile.yml
+touch Taskfile.yml && docker run -v $(pwd):/app -w /app buildpack-deps:curl bash -c "curl --output /dl 'https://raw.githubusercontent.com/itsmethemojo/dot-dockerize/master/Taskfile.yml' && cat /dl > Taskfile.yml"
 ```
 
-### 2. install buildpack
+### 2. init .dckrz in your project
 ```
-task init
-```
-
-### 3. setup a custom task
-```
-name=mytask task add
+task dz:init
 ```
 
-### 4. configure your custom task
+### 3. create a new script
+```
+name=lint task dz:add
+```
+
+### 4. configure your new script
 
 #### 4.1 Script
 
-in **scripts/mytask.sh** is now a bash script template where you can add your commands
+in **scripts/lint.sh** is now a bash script template where you can add your commands
 
 #### 4.2 Container
 
-you can overload the container base image in buildpack/config/tasks.env
+you can overload the container base image in .dckrz/config/dckrz.conf
 ```
-mytask_container=ruby
+lint_container=ruby
 ```
 or point to an own Dockerfile to be used in your project
 ```
-mytask_dockerfile=buildpack/config/docker/mytask/Dockerfile
+lint_dockerfile=.dckrz/config/docker/lint/Dockerfile
 ```
 
 ### 5. use your new task
 ```
-task mytask
+task lint
 ```
 
-## testing buildpack
+## testing .dckrz
+
+this might be interesting to see if .dckrz runs on your OS
 
 ```
-task buildpack_test
+task dz:test
 ```
-
-to run the tests against a specific branch or tag
-```
-VERSION=branch-or-tag-name task buildpack_test
-```
-
-tests cli output will be stored in `tests/debug`
+additional tests cli output will be stored in `tests/debug`
