@@ -3,7 +3,9 @@ version: '2'
 expansions: 5
 
 vars:
-  API_TAGS: 'https://api.github.com/repos/itsmethemojo/buildpack/tags'
+  API_TAGS: 'https://api.github.com/repos/itsmethemojo/dot-dockerize/tags'
+  CONTAINER_DEFAULT: "buildpack-deps:curl"
+  CONTAINER_CLONE: "buildpack-deps:stretch"
   DIRECTORY_DCKRZ: .dckrz
   DIRECTORY_DCKRZ_TMP: "{{.DIRECTORY_DCKRZ}}/tmp"
   DIRECTORY_CONFIG: "{{.DIRECTORY_DCKRZ}}/config"
@@ -15,12 +17,13 @@ vars:
         DCKRZ_VERSION="$(grep -e "^#DCKRZ_VERSION:" Taskfile.yml 2>/dev/null | grep -o -e '[^:]*$')";
       fi;
       if [ "$DCKRZ_VERSION" == "" ] && [ ! -f "../tests.bats" ]; then
-        DCKRZ_VERSION=$(docker run buildpack-deps:curl bash -c 'curl -s https://api.github.com/repos/itsmethemojo/buildpack/tags | grep "\"name\":" | head -1 | cut -d":" -f2 | cut -d"\"" -f2');
+        DCKRZ_VERSION=$(docker run buildpack-deps:curl bash -c 'curl -s https://api.github.com/repos/itsmethemojo/dot-dockerize/tags | grep "\"name\":" | head -1 | cut -d":" -f2 | cut -d"\"" -f2');
       fi;
       echo $DCKRZ_VERSION;
   FILE_BASH_SCRIPT_TEMPLATE: "{{.DIRECTORY_DCKRZ_TMP}}/bash/templates/run-task.sh"
   FILE_TARGET_TEMPLATE: "{{.DIRECTORY_DCKRZ_TMP}}/taskfiles/templates/target-to-run-task.yml"
-  GIT_REPOSITORY: 'https://github.com/itsmethemojo/buildpack.git'
+  FILE_DCKRZ_CONFIG: "{{.DIRECTORY_CONFIG}}/dckrz.conf"
+  GIT_REPOSITORY: 'https://github.com/itsmethemojo/dot-dockerize.git'
   PROJECT_FOLDER_NAME:
     sh: "echo ${PWD##*/}"
   PROJECT_PATH_ABSOLUTE:
@@ -71,7 +74,7 @@ tasks:
     desc: "will upgrade your .dckrz framework to the most current version available\n"
     cmds:
       - cmd: >-
-          NEWEST_VERSION=$(docker run buildpack-deps:curl bash -c 'curl -s {{.API_TAGS}} | grep "\"name\":" | head -1 | cut -d":" -f2 | cut -d"\"" -f2');
+          NEWEST_VERSION=$(docker run {{.CONTAINER_DEFAULT}} bash -c 'curl -s {{.API_TAGS}} | grep "\"name\":" | head -1 | cut -d":" -f2 | cut -d"\"" -f2');
           if [ "$NEWEST_VERSION" == "{{.DCKRZ_VERSION}}" ]; then
             echo 'DCKRZE is already on the newest version';
           else
@@ -113,7 +116,7 @@ tasks:
     cmds:
       - cmd: >-
           mkdir -p {{.DIRECTORY_CONFIG}}/docker;
-          touch {{.DIRECTORY_CONFIG}}/tasks.env
+          touch {{.FILE_DCKRZ_CONFIG}}
         silent: true
 
 #TODO when local testing write version already in file?
@@ -128,30 +131,33 @@ tasks:
           cp -R {{.PROJECT_PATH_ABSOLUTE}}/../../bash {{.PROJECT_PATH_ABSOLUTE}}/{{.DIRECTORY_DCKRZ_TMP}}/;
           cp {{.PROJECT_PATH_ABSOLUTE}}/../../Taskfile.yml {{.PROJECT_PATH_ABSOLUTE}}/{{.DIRECTORY_DCKRZ_TMP}}/Taskfile.yml;
           else
-          docker run -v {{.PROJECT_PATH_ABSOLUTE}}/{{.DIRECTORY_DCKRZ_TMP}}:/downloads buildpack-deps
+          docker run -v {{.PROJECT_PATH_ABSOLUTE}}/{{.DIRECTORY_DCKRZ_TMP}}:/downloads {{.CONTAINER_CLONE}}
           bash -c "
           git clone -b {{.DCKRZ_VERSION}} --depth 1 {{.GIT_REPOSITORY}} /downloads &> /dev/null &&
           rm -r /downloads/.git &&
           chmod -R 777 /downloads
           ";
           fi;
-        silent: true
+        silent: false
 
   _init:update_gitignore:
     cmds:
       - cmd: >-
           if [ ! -f .gitignore ]; then
-            echo "/{{.DIRECTORY_DCKRZ_TMP}}"/ > .gitignore;
+            echo -e "! /{{.DIRECTORY_DCKRZ}}/\n/{{.DIRECTORY_DCKRZ_TMP}}/" > .gitignore;
           fi;
-          if [ "$(grep "/{{.DIRECTORY_DCKRZ_TMP}}/" .gitignore | wc -l)" = "0" ]; then
+          if [ "$(grep '! /{{.DIRECTORY_DCKRZ}}/' .gitignore | wc -l)" = "0" ]; then
+            echo "! /{{.DIRECTORY_DCKRZ}}/" >> .gitignore;
+          fi;
+          if [ "$(grep '/{{.DIRECTORY_DCKRZ_TMP}}/' .gitignore | wc -l)" = "0" ]; then
             echo "/{{.DIRECTORY_DCKRZ_TMP}}/" >> .gitignore;
-          fi
+          fi;
         silent: true
 
   _print_version:
     cmds:
       - cmd: >-
-          echo DCKRZE Version: {{.DCKRZ_VERSION}};
+          echo .dckrz Version: {{.DCKRZ_VERSION}};
         silent: true
 
   _script:run:
@@ -168,25 +174,23 @@ tasks:
           fi;
         silent: true
     vars:
-      FILE_CONFIG: "{{.DIRECTORY_CONFIG}}/tasks.env"
+      FILE_CONFIG: "{{.FILE_DCKRZ_CONFIG}}"
       FILE_SCRIPT: "{{.DIRECTORY_SCRIPTS}}/{{.TASK_NAME}}.sh"
-      DEFAULT_CONTAINER: "buildpack-deps"
       PATH_IN_CONTAINER: "/container-{{.TASK_NAME}}"
       CONTAINER_MOUNT_PARAMETERS: "-v {{.PROJECT_PATH_ABSOLUTE}}:{{.PATH_IN_CONTAINER}}"
       CONTAINER_NAME:
         sh: >-
-          CONFIG_FILE=.dckrz/config/tasks.env
-          RETURN_CONTAINER_NAME=buildpack-deps;
-          if [ "$(grep -e "^{{.TASK_NAME}}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
-            RETURN_CONTAINER_NAME="$(grep -e "^{{.TASK_NAME}}_container=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')";
+          RETURN_CONTAINER_NAME={{.CONTAINER_DEFAULT}};
+          if [ "$(grep -e "^{{.TASK_NAME}}_container=" {{.FILE_DCKRZ_CONFIG}} 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
+            RETURN_CONTAINER_NAME="$(grep -e "^{{.TASK_NAME}}_container=" {{.FILE_DCKRZ_CONFIG}} 2>/dev/null | grep -o -e '[^=]*$')";
           fi;
-          if [ "$(grep -e "^{{.TASK_NAME}}_dockerfile=" $CONFIG_FILE 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
+          if [ "$(grep -e "^{{.TASK_NAME}}_dockerfile=" {{.FILE_DCKRZ_CONFIG}} 2>/dev/null | grep -o -e '[^=]*$')" != "" ]; then
             RETURN_CONTAINER_NAME="dckrz-{{.PROJECT_FOLDER_NAME}}-{{.TASK_NAME}}";
           fi;
           echo $RETURN_CONTAINER_NAME;
       DOCKERFILE_PATH:
         sh: >-
-          echo "$(grep -e "^{{.TASK_NAME}}_dockerfile=" .dckrz/config/tasks.env 2>/dev/null | grep -o -e '[^=]*$')";
+          echo "$(grep -e "^{{.TASK_NAME}}_dockerfile=" {{.FILE_DCKRZ_CONFIG}} 2>/dev/null | grep -o -e '[^=]*$')";
 
   _script:start_watch:
     cmds:
@@ -212,7 +216,7 @@ tasks:
     cmds:
       - cmd: >-
           if [ ! -d "{{.PROJECT_PATH_ABSOLUTE}}/tests/bats" ]; then
-          docker run -v "{{.PROJECT_PATH_ABSOLUTE}}/tests/bats:/bats" buildpack-deps
+          docker run -v "{{.PROJECT_PATH_ABSOLUTE}}/tests/bats:/bats" {{.CONTAINER_CLONE}}
           bash -c "
           git clone --depth 1 https://github.com/sstephenson/bats.git /bats &> /dev/null &&
           rm -r /bats/.git &&

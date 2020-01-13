@@ -1,4 +1,4 @@
-/buildpack/
+/.dckrz/
 /tests/bats
 /tests/debug
 /tests/tmp

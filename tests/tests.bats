@@ -32,10 +32,10 @@ function teardown {
 @test "task dz:init succeeds. version is printed, folder structure is created" {
   run $TASK_BINARY dz:init
   [ "$status" -eq 0 ]
-  [ "$(echo $output | grep 'DCKRZE Version:' | wc -l)" = "1" ]
+  [ "$(echo $output | grep '.dckrz Version:' | wc -l)" = "1" ]
   [ "$(ls -1 .dckrz/ | tr '\n' _)" = "config_tmp_" ]
-  [ "$(ls -1 .dckrz/config/ | tr '\n' _)" = "docker_tasks.env_" ]
-  [ "$(cat .gitignore)" = "/.dckrz/tmp/" ]
+  [ "$(ls -1 .dckrz/config/ | tr '\n' _)" = "dckrz.conf_docker_" ]
+  [ "$(cat .gitignore | tr '\n' _)" = "! /.dckrz/_/.dckrz/tmp/_" ]
 }
 
 #4
@@ -63,14 +63,42 @@ function teardown {
 @test "reinstall with task dz:init succeeds, .gitignore content as expected after reinstall" {
   run $TASK_BINARY dz:init dz:init
   [ "$status" -eq 0 ]
-  [ "$(cat .gitignore)" = "/.dckrz/tmp/" ]
+  [ "$(cat .gitignore | tr '\n' _)" = "! /.dckrz/_/.dckrz/tmp/_" ]
+}
+
+#8
+@test "task dz:init with existing .gitignore (variant 1) adds only lines needed" {
+  run $TASK_BINARY dz:init
+  [ "$status" -eq 0 ]
+  [ "$(cat .gitignore | tr '\n' _)" = "/.dckrz/tmp/_! /.dckrz/_" ]
+}
+
+#9
+@test "task dz:init with existing .gitignore (variant 2) adds only lines needed" {
+  run $TASK_BINARY dz:init
+  [ "$status" -eq 0 ]
+  [ "$(cat .gitignore | tr '\n' _)" = "! /.dckrz/_/.dckrz/tmp/_" ]
+}
+
+#10
+@test "task dz:init with existing .gitignore (variant 3) adds only lines needed" {
+  run $TASK_BINARY dz:init
+  [ "$status" -eq 0 ]
+  [ "$(cat .gitignore | tr '\n' _)" = "/ignore-this_/.dckrz/tmp/_/ignore-that_! /.dckrz/_" ]
+}
+
+#8
+@test "task dz:init with existing .gitignore (variant 4) adds only lines needed" {
+  run $TASK_BINARY dz:init
+  [ "$status" -eq 0 ]
+  [ "$(cat .gitignore | tr '\n' _)" = "! /.dckrz/_/.dckrz/tmp/_" ]
 }
 
 #8
 @test "running task first_task succeeds. version and duration is printed" {
   run echo "$($TASK_BINARY dz:init && NAME=first_task $TASK_BINARY dz:add && $TASK_BINARY first_task && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
-  [ "$(echo $output | grep 'DCKRZE Version:' | wc -l)" = "1" ]
+  [ "$(echo $output | grep '.dckrz Version:' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'Duration:' | wc -l)" = "1" ]
   [ "$(echo $output | grep ok | wc -l)" = "1" ]
 }
@@ -93,7 +121,7 @@ function teardown {
 @test "VERSION=0.5 task dz:init succeeds. printed Version is 0.5. version is also in Taskfile.yml" {
   run echo "$(VERSION=0.5 $TASK_BINARY dz:init && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
-  [ "$(echo $output | grep 'DCKRZE Version: 0.5' | wc -l)" = "1" ]
+  [ "$(echo $output | grep '.dckrz Version: 0.5' | wc -l)" = "1" ]
   [ "$(cat Taskfile.yml | grep '#DCKRZ_VERSION: 0.5' | wc -l)" = "1" ]
 }
 
