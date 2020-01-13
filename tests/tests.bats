@@ -11,6 +11,7 @@ function setup {
 
 function teardown {
   echo $output > ../debug/$BATS_TEST_NUMBER.log
+  ls -laR * >> ../debug/$BATS_TEST_NUMBER.log
   find . -mindepth 1 -delete
 }
 
@@ -35,7 +36,7 @@ function teardown {
   [ "$(echo $output | grep '.dckrz Version:' | wc -l)" = "1" ]
   [ "$(ls -1 .dckrz/ | tr '\n' _)" = "config_tmp_" ]
   [ "$(ls -1 .dckrz/config/ | tr '\n' _)" = "dckrz.conf_docker_" ]
-  [ "$(cat .gitignore)" = "/.dckrz/tmp/" ]
+  [ "$(cat .gitignore | tr '\n' _)" = "! /.dckrz/_/.dckrz/tmp/_" ]
 }
 
 #4
@@ -63,7 +64,35 @@ function teardown {
 @test "reinstall with task dz:init succeeds, .gitignore content as expected after reinstall" {
   run $TASK_BINARY dz:init dz:init
   [ "$status" -eq 0 ]
-  [ "$(cat .gitignore)" = "/.dckrz/tmp/" ]
+  [ "$(cat .gitignore | tr '\n' _)" = "! /.dckrz/_/.dckrz/tmp/_" ]
+}
+
+#8
+@test "task dz:init with existing .gitignore (variant 1) adds only lines needed" {
+  run $TASK_BINARY dz:init
+  [ "$status" -eq 0 ]
+  [ "$(cat .gitignore | tr '\n' _)" = "/.dckrz/tmp/_! /.dckrz/_" ]
+}
+
+#9
+@test "task dz:init with existing .gitignore (variant 2) adds only lines needed" {
+  run $TASK_BINARY dz:init
+  [ "$status" -eq 0 ]
+  [ "$(cat .gitignore | tr '\n' _)" = "! /.dckrz/_/.dckrz/tmp/_" ]
+}
+
+#10
+@test "task dz:init with existing .gitignore (variant 3) adds only lines needed" {
+  run $TASK_BINARY dz:init
+  [ "$status" -eq 0 ]
+  [ "$(cat .gitignore | tr '\n' _)" = "/ignore-this_/.dckrz/tmp/_/ignore-that_! /.dckrz/_" ]
+}
+
+#8
+@test "task dz:init with existing .gitignore (variant 4) adds only lines needed" {
+  run $TASK_BINARY dz:init
+  [ "$status" -eq 0 ]
+  [ "$(cat .gitignore | tr '\n' _)" = "! /.dckrz/_/.dckrz/tmp/_" ]
 }
 
 #8
