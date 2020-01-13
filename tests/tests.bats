@@ -11,7 +11,6 @@ function setup {
 
 function teardown {
   echo $output > ../debug/$BATS_TEST_NUMBER.log
-  ls -laR * >> ../debug/$BATS_TEST_NUMBER.log
   find . -mindepth 1 -delete
 }
 
