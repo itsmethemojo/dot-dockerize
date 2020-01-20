@@ -69,6 +69,7 @@ tasks:
       - task: _test:download_bats
       - task: _test:run
 
+  #TODO task in task does not work well on tests
   dz:upgrade:
     deps: [ _init:check_if_init_needed ]
     desc: "will upgrade your .dckrz framework to the most current version available\n"
@@ -77,10 +78,11 @@ tasks:
           NEWEST_VERSION=$(docker run {{.CONTAINER_DEFAULT}} bash -c 'curl -s {{.API_TAGS}} | grep "\"name\":" | head -1 | cut -d":" -f2 | cut -d"\"" -f2');
           if [ "$NEWEST_VERSION" == "{{.DCKRZ_VERSION}}" ]; then
             echo 'DCKRZE is already on the newest version';
+            exit 1;
           else
-            VERSION=$NEWEST_VERSION task dz:init
-          fi
-        silent: true
+            VERSION=$NEWEST_VERSION {{.TASK_BINARY}} dz:init;
+          fi;
+        silent: false
 
   dz:version:
     desc: "prints the current used version of .dckrz\n"
@@ -138,7 +140,7 @@ tasks:
           chmod -R 777 /downloads
           ";
           fi;
-        silent: false
+        silent: true
 
   _init:update_gitignore:
     cmds:
@@ -163,7 +165,6 @@ tasks:
   _script:run:
     cmds:
       - cmd: >-
-          ls {{.DIRECTORY_DCKRZ_TMP}}/;
           if [ "{{.DOCKERFILE_PATH}}" != "" ]; then
             docker build -t {{.CONTAINER_NAME}} -f "{{.DOCKERFILE_PATH}}" $(dirname "{{.DOCKERFILE_PATH}}");
           fi;
