@@ -92,8 +92,10 @@ function teardown {
   [ "$(ls -1 .dckrz/tmp/FILE | tr '\n' _)" != ".dckrz/tmp/FILE_" ]
 }
 
+#TODO reactivate with 0.10
 # VERSION=0.8 task dz:init succeeds. printed Version is 0.8. version is also in Taskfile.yml
 @test "dz-init-version-0-8" {
+  skip
   run echo "$(VERSION=0.8 $TASK_BINARY dz:init && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   [ "$(echo $output | grep '.dckrz Version: 0.8' | wc -l)" = "1" ]
@@ -107,14 +109,29 @@ function teardown {
   [ "$(cat Taskfile.yml | grep '#modified line' | wc -l)" = "0" ]
 }
 
-# dz:upgrade after VERSION=0.8 task dz:init
+# dz:upgrade will find a "newer" version when dz:init was in testmode
+@test "dz-upgrade" {
+  run echo "$($TASK_BINARY dz:init && $TASK_BINARY dz:upgrade && echo FINAL_EXIT_CODE=$?)"
+  [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'upgrading to .dckrz Version: ' | wc -l)" = "1" ]
+}
+
+#TODO activate with 0.10
+# a second dz:upgrade will tell that there is no newer version
+@test "dz-upgrade-when-on-newest-version" {
+  skip
+  run echo "$($TASK_BINARY dz:init && $TASK_BINARY dz:upgrade && $TASK_BINARY dz:upgrade && echo FINAL_EXIT_CODE=$?)"
+  [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
+  [ "$(echo $output | grep '.dckrz is already on the newest version' | wc -l)" = "1" ]
+}
+
+# dz:upgrade will find a higher version when dz:init with version 0.10
 #TODO activate when 0.11 is available
 @test "dz-upgrade-after-dz-init-version-0-10" {
   skip
-  run echo "$(VERSION=0.10 $TASK_BINARY dz:init && $TASK_BINARY dz:upgrade && echo FINAL_EXIT_CODE=$?)"
+  run echo "$(VERSION=0.10 $TASK_BINARY dz:init && $TASK_BINARY dz:upgrade && $TASK_BINARY dz:upgrade && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
-  [ "$(cat Taskfile.yml | grep '#DCKRZ_VERSION: 0.8' | wc -l)" = "0" ]
-  [ "$(cat Taskfile.yml | grep '#DCKRZ_VERSION: ' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'upgrading to .dckrz Version: ' | wc -l)" = "1" ]
 }
 
 # task dz:add without name parameter fails
