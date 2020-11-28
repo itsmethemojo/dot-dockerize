@@ -42,7 +42,7 @@ task dz:init
 
 ### 3. create a new script
 ```
-name=lint task dz:add
+TARGET_NAME=lint task dz:add
 ```
 
 ### 4. configure your new script
