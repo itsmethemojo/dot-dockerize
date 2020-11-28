@@ -1,11 +1,7 @@
 name: test-on-ubuntu
 
 on:
-  pull_request_review_comment:
-    types: [created, deleted]
   push:
-    branches:
-      - master
 
 jobs:
   lint:
