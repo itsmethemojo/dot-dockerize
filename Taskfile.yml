@@ -47,7 +47,8 @@ tasks:
 
   dz:add:
     desc: "adds a new task that can be later used with task foo_bar\n                TARGET_NAME=foo_bar task dz:add\n"
-    deps: [ _init:check_if_init_needed ]
+    deps:
+      - _init:check_if_init_needed
     cmds:
       - task: _add:create_task_script
       - task: _update:taskfile
@@ -70,7 +71,8 @@ tasks:
       - task: _test:run
 
   dz:upgrade:
-    deps: [ _init:check_if_init_needed ]
+    deps:
+      - _init:check_if_init_needed
     desc: "will upgrade your .dckrz framework to the most current version available\n"
     cmds:
       - cmd: >-
@@ -84,7 +86,8 @@ tasks:
 
   dz:version:
     desc: "prints the current used version of .dckrz\n"
-    deps: [ _init:check_if_init_needed ]
+    deps:
+      - _init:check_if_init_needed
     cmds:
       - task: _print_version
 
