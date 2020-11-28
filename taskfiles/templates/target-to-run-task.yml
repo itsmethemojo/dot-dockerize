@@ -1,7 +1,8 @@
 
   __TASKNAME__:
     desc: task __TASKNAME__
-    deps: [ _init:check_if_init_needed ]
+    deps:
+      - _init:check_if_init_needed
     cmds:
       - task: _script:start_watch
         vars: {TASK_NAME: "__TASKNAME__"}

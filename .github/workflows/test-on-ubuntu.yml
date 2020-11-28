@@ -8,10 +8,18 @@ on:
       - master
 
 jobs:
-  test:
-
+  lint:
     runs-on: ubuntu-latest
-
+    steps:
+    - uses: actions/checkout@v1
+    - name: install pre-commit
+      run: |
+        pip install pre-commit
+    - name: download bats
+      run: |
+        pre-commit run --all-files
+  test:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - name: download task
