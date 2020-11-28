@@ -42,7 +42,7 @@ function teardown {
 @test "task dz:add without name parameter fails" {
   run $TASK_BINARY dz:init dz:add
   [ "$status" -eq 1 ]
-  [ "$(echo $output | grep 'missing Parameter name! Usage: NAME="foo_bar" task dz:add' | wc -l)" = "1" ]
+  [ "$(echo $output | grep 'missing Parameter name! Usage: TARGET_NAME="foo_bar" task dz:add' | wc -l)" = "1" ]
 }
 
 #5
@@ -52,8 +52,8 @@ function teardown {
 }
 
 #6
-@test "NAME=first_task task dz:add succeeds. first_task.sh was created" {
-  run echo "$($TASK_BINARY dz:init && NAME=first_task $TASK_BINARY dz:add && echo FINAL_EXIT_CODE=$?)"
+@test "TARGET_NAME=first_task task dz:add succeeds. first_task.sh was created" {
+  run echo "$($TASK_BINARY dz:init && TARGET_NAME=first_task $TASK_BINARY dz:add && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   # since bats can't handle parameters before the runner, this adds the response code to the output to be checked
   [ "$(ls -1 .dckrz/scripts | tr '\n' _)" = "first_task.sh_" ]
@@ -96,7 +96,7 @@ function teardown {
 
 #8
 @test "running task first_task succeeds. version and duration is printed" {
-  run echo "$($TASK_BINARY dz:init && NAME=first_task $TASK_BINARY dz:add && $TASK_BINARY first_task && echo FINAL_EXIT_CODE=$?)"
+  run echo "$($TASK_BINARY dz:init && TARGET_NAME=first_task $TASK_BINARY dz:add && $TASK_BINARY first_task && echo FINAL_EXIT_CODE=$?)"
   [ "$(echo $output | grep 'FINAL_EXIT_CODE=0' | wc -l)" = "1" ]
   [ "$(echo $output | grep '.dckrz Version:' | wc -l)" = "1" ]
   [ "$(echo $output | grep 'Duration:' | wc -l)" = "1" ]
